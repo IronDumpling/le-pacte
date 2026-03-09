@@ -20,7 +20,12 @@
 
 ## 运行
 
+**要求：** Node.js >= 20.19.4（Expo 55 依赖 ES2023 特性）
+
 ```bash
+# 若使用 nvm，进入项目后会自动使用 .nvmrc 中的版本
+nvm use
+
 npm install
 npx expo start
 ```
