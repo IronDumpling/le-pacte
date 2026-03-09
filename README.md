@@ -20,7 +20,9 @@
 
 ## 运行
 
-**要求：** Node.js >= 20.19.4（Expo 55 依赖 ES2023 特性）
+**要求：** Node.js >= 20.19.4
+
+**SDK：** Expo SDK 54（兼容 App Store / Play Store 的 Expo Go）
 
 ```bash
 # 若使用 nvm，进入项目后会自动使用 .nvmrc 中的版本
@@ -31,6 +33,17 @@ npx expo start
 ```
 
 使用 Expo Go 或开发构建运行。
+
+## 在手机上预览（Expo Go）
+
+**基本开发无需登录**：电脑和手机在同一 Wi-Fi 下，用 Expo Go 扫码即可预览。
+
+若需登录（如使用 EAS、云构建等）：
+
+1. **电脑端**：在项目目录执行 `npx expo login`，输入 Expo 账号
+2. **手机端**：打开 Expo Go → 底部「Profile」→「Sign in」→ 使用同一账号登录
+
+扫码或手动输入终端显示的 URL（如 `exp://192.168.x.x:8081`）即可连接。
 
 ## 项目结构
 
