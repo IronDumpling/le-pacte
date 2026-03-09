@@ -13,6 +13,7 @@ interface HeavyButtonProps {
   title: string;
   onPress: () => void;
   onLongPress?: () => void;
+  delayLongPress?: number;
   variant?: 'primary' | 'destruction' | 'secondary';
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -29,6 +30,7 @@ export function HeavyButton({
   title,
   onPress,
   onLongPress,
+  delayLongPress,
   variant = 'primary',
   style,
   textStyle,
@@ -54,6 +56,7 @@ export function HeavyButton({
     <AnimatedPressable
       onPress={onPress}
       onLongPress={onLongPress}
+      delayLongPress={delayLongPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled}

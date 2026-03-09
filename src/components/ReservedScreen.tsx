@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
 import { useReservedCountdown, formatMsToTime } from '../hooks/useTimer';
@@ -8,7 +9,11 @@ import { colors, typography, spacing } from '../design/theme';
 
 export function ReservedScreen() {
   const { reservedAt, enterFocus, timeoutReserved } = usePacteStore();
-  const remainingMs = useReservedCountdown(reservedAt, timeoutReserved);
+  const handleTimeout = useCallback(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    timeoutReserved();
+  }, [timeoutReserved]);
+  const remainingMs = useReservedCountdown(reservedAt, handleTimeout);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>

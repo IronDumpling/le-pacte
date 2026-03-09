@@ -6,7 +6,6 @@ import Animated, {
   withSpring,
   withSequence,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
 import { colors, typography } from '../theme';
 
@@ -33,22 +32,23 @@ export function ChainDisplay({ count, animateBreak, animateSuccess }: ChainDispl
   React.useEffect(() => {
     if (animateBreak) {
       translateX.value = withSequence(
-        withTiming(-5, { duration: 50 }),
-        withTiming(5, { duration: 50 }),
-        withTiming(-5, { duration: 50 }),
-        withTiming(5, { duration: 50 }),
-        withTiming(-8, { duration: 80 }),
-        withTiming(8, { duration: 80 }),
-        withTiming(0, { duration: 100 })
+        withTiming(-8, { duration: 40 }),
+        withTiming(8, { duration: 40 }),
+        withTiming(-12, { duration: 60 }),
+        withTiming(12, { duration: 60 }),
+        withTiming(-6, { duration: 50 }),
+        withTiming(6, { duration: 50 }),
+        withTiming(0, { duration: 80 })
       );
       opacity.value = withSequence(
-        withTiming(0.7, { duration: 200 }),
-        withTiming(0.3, { duration: 200 }),
-        withTiming(1, { duration: 100 })
+        withTiming(0.8, { duration: 150 }),
+        withTiming(0.2, { duration: 200 }),
+        withTiming(1, { duration: 150 })
       );
       scale.value = withSequence(
-        withTiming(0.9, { duration: 300 }),
-        withSpring(1)
+        withTiming(1.05, { duration: 100 }),
+        withTiming(0.85, { duration: 250 }),
+        withSpring(1, { damping: 12, stiffness: 100 })
       );
     }
   }, [animateBreak]);

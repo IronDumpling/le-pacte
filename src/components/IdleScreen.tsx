@@ -1,22 +1,29 @@
-import React from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { usePacteStore } from '../store/pacteStore';
 import { ChainDisplay, HeavyButton } from '../design/components';
-import { colors, spacing } from '../design/theme';
+import { colors, spacing, typography } from '../design/theme';
 
 interface IdleScreenProps {
-  onShowConstitution?: () => void;
   animateSuccess?: boolean;
   animateBreak?: boolean;
 }
 
 export function IdleScreen({
-  onShowConstitution,
   animateSuccess,
   animateBreak,
 }: IdleScreenProps) {
-  const { chainCount, reserve } = usePacteStore();
+  const router = useRouter();
+  const { chainCount, reserve, clearIdleAnimation } = usePacteStore();
+
+  useEffect(() => {
+    if (animateSuccess || animateBreak) {
+      const t = setTimeout(clearIdleAnimation, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [animateSuccess, animateBreak, clearIdleAnimation]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -27,15 +34,13 @@ export function IdleScreen({
           animateBreak={animateBreak}
         />
         <HeavyButton title="预约启动" onPress={reserve} variant="primary" />
-        {onShowConstitution && (
-          <Pressable
-            onPress={onShowConstitution}
-            style={styles.constitutionLink}
-            hitSlop={16}
-          >
-            {/* Constitution link - minimal, can add Text later */}
-          </Pressable>
-        )}
+        <Pressable
+          onPress={() => router.push('/constitution')}
+          style={styles.constitutionLink}
+          hitSlop={16}
+        >
+          <Text style={styles.constitutionText}>宪法 · 判例</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -55,5 +60,9 @@ const styles = StyleSheet.create({
   constitutionLink: {
     marginTop: spacing.xl,
     padding: spacing.sm,
+  },
+  constitutionText: {
+    ...typography.body,
+    color: colors.textMuted,
   },
 });

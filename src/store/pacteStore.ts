@@ -4,6 +4,8 @@ import { RESERVED_DURATION_MS } from '../design/theme';
 
 export type PacteStateType = 'IDLE' | 'RESERVED' | 'FOCUSED' | 'DILEMMA';
 
+export type IdleAnimationType = 'success' | 'break' | null;
+
 interface PacteState {
   currentState: PacteStateType;
   chainCount: number;
@@ -11,7 +13,7 @@ interface PacteState {
   reservedAt: number | null;
   focusedStartedAt: number | null;
   frozenElapsedMs: number | null;
-  backgroundTimestamp: number | null;
+  lastIdleAnimation: IdleAnimationType;
   _hydrated: boolean;
 }
 
@@ -23,8 +25,7 @@ interface PacteActions {
   triggerDilemma: () => void;
   chooseDestruction: () => void;
   chooseCompromise: (exceptionText: string) => void;
-  setBackgroundTimestamp: (ts: number | null) => void;
-  adjustReservedForBackground: (elapsedMs: number) => void;
+  clearIdleAnimation: () => void;
   hydrate: () => Promise<void>;
 }
 
@@ -37,7 +38,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   reservedAt: null,
   focusedStartedAt: null,
   frozenElapsedMs: null,
-  backgroundTimestamp: null,
+  lastIdleAnimation: null,
   _hydrated: false,
 
   hydrate: async () => {
@@ -59,6 +60,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     set({
       currentState: 'RESERVED',
       reservedAt: now,
+      lastIdleAnimation: null,
     });
     storage.setReservedAt(now);
   },
@@ -83,6 +85,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       currentState: 'IDLE',
       chainCount: 0,
       reservedAt: null,
+      lastIdleAnimation: 'break',
     });
     storage.setChainCount(0);
     storage.setReservedAt(null);
@@ -96,6 +99,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       currentState: 'IDLE',
       chainCount: newCount,
       focusedStartedAt: null,
+      lastIdleAnimation: 'success',
     });
     storage.setChainCount(newCount);
     storage.setFocusedStartedAt(null);
@@ -118,6 +122,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       currentState: 'IDLE',
       chainCount: 0,
       frozenElapsedMs: null,
+      lastIdleAnimation: 'break',
     });
     storage.setChainCount(0);
   },
@@ -139,15 +144,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     storage.setFocusedStartedAt(newFocusedStartedAt);
   },
 
-  setBackgroundTimestamp: (ts: number | null) => {
-    set({ backgroundTimestamp: ts });
-  },
-
-  adjustReservedForBackground: (elapsedMs: number) => {
-    const { currentState, reservedAt } = get();
-    if (currentState !== 'RESERVED' || reservedAt === null) return;
-    const newReservedAt = reservedAt + elapsedMs;
-    set({ reservedAt: newReservedAt });
-    storage.setReservedAt(newReservedAt);
+  clearIdleAnimation: () => {
+    set({ lastIdleAnimation: null });
   },
 }));

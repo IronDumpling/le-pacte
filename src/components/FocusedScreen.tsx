@@ -28,9 +28,10 @@ export function FocusedScreen() {
 
       <View style={styles.actions}>
         <HeavyButton
-          title="完成结算"
+          title="完成结算 (长按 800ms)"
           onLongPress={handleLongPressComplete}
           onPress={() => {}}
+          delayLongPress={800}
           variant="primary"
           style={styles.completeButton}
         />
