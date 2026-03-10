@@ -21,6 +21,7 @@ import Animated, {
   withTiming,
   Easing,
   interpolate,
+  Extrapolation,
   runOnJS,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -747,6 +748,7 @@ function ChainCard({
   animateBreak,
   onSelect,
   onShowDetail,
+  cornerRadius,
 }: {
   chain: Chain;
   isActive: boolean;
@@ -755,6 +757,7 @@ function ChainCard({
   animateBreak?: boolean;
   onSelect: () => void;
   onShowDetail?: () => void;
+  cornerRadius?: number;
 }) {
   const themeLabel = chain.theme || '专注';
   const handlePress = () => {
@@ -764,10 +767,14 @@ function ChainCard({
       onSelect();
     }
   };
+  const cardStyle = [
+    styles.chainCard,
+    cornerRadius !== undefined && { borderRadius: cornerRadius },
+  ];
   return (
     <Pressable
       onPress={handlePress}
-      style={styles.chainCard}
+      style={cardStyle}
     >
       <View style={styles.chainCardTop}>
         <Text style={styles.chainTheme} numberOfLines={1}>
@@ -803,8 +810,11 @@ function ArchivedChainRow({
 }) {
   const translateX = useSharedValue(0);
   const prevGesture = useRef(0);
+  const hasSnappedThisGesture = useRef(false);
   const swipeLeftReveal = ROW_SWIPE_BUTTON_WIDTH * 2;
   const swipeRightReveal = ROW_SWIPE_BUTTON_WIDTH;
+  const SNAP_THRESHOLD = 20;
+  const CLOSE_THRESHOLD = 20;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -812,38 +822,88 @@ function ArchivedChainRow({
       onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         const { dx } = gestureState;
-        return Math.abs(dx) > 15;
+        return Math.abs(dx) > 8;
       },
       onMoveShouldSetPanResponderCapture: (_, gestureState) => {
         const { dx, dy } = gestureState;
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
-        return absDx > 8 && absDx > absDy;
+        return absDx > 6 && absDx > absDy;
       },
       onPanResponderGrant: () => {
         prevGesture.current = translateX.value;
+        hasSnappedThisGesture.current = false;
       },
       onPanResponderMove: (_, gestureState) => {
         const { dx } = gestureState;
-        const next = Math.max(-swipeLeftReveal, Math.min(swipeRightReveal, prevGesture.current + dx));
-        translateX.value = next;
+        const next = prevGesture.current + dx;
+        if (hasSnappedThisGesture.current) {
+          if (prevGesture.current < 0 && next > -swipeLeftReveal + CLOSE_THRESHOLD) {
+            translateX.value = withTiming(0, { duration: 150 });
+            prevGesture.current = 0;
+          } else if (prevGesture.current > 0 && next < swipeRightReveal - CLOSE_THRESHOLD) {
+            translateX.value = withTiming(0, { duration: 150 });
+            prevGesture.current = 0;
+          }
+          return;
+        }
+        if (next < -SNAP_THRESHOLD) {
+          hasSnappedThisGesture.current = true;
+          translateX.value = withTiming(-swipeLeftReveal, { duration: 150 });
+          prevGesture.current = -swipeLeftReveal;
+        } else if (next > SNAP_THRESHOLD) {
+          hasSnappedThisGesture.current = true;
+          translateX.value = withTiming(swipeRightReveal, { duration: 150 });
+          prevGesture.current = swipeRightReveal;
+        } else {
+          translateX.value = next;
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
         const { dx, vx } = gestureState;
-        if (dx < -30 || vx < -0.3) {
-          translateX.value = withTiming(-swipeLeftReveal, { duration: 200 });
-        } else if (dx > 30 || vx > 0.3) {
-          translateX.value = withTiming(swipeRightReveal, { duration: 200 });
+        const next = prevGesture.current + dx;
+        if (hasSnappedThisGesture.current) {
+          if (prevGesture.current < 0 && next > -swipeLeftReveal + CLOSE_THRESHOLD) {
+            translateX.value = withTiming(0, { duration: 150 });
+            prevGesture.current = 0;
+          } else if (prevGesture.current > 0 && next < swipeRightReveal - CLOSE_THRESHOLD) {
+            translateX.value = withTiming(0, { duration: 150 });
+            prevGesture.current = 0;
+          }
+          return;
+        }
+        if (dx < -15 || vx < -0.2) {
+          translateX.value = withTiming(-swipeLeftReveal, { duration: 150 });
+        } else if (dx > 15 || vx > 0.2) {
+          translateX.value = withTiming(swipeRightReveal, { duration: 150 });
         } else {
-          translateX.value = withTiming(0, { duration: 200 });
+          translateX.value = withTiming(0, { duration: 150 });
         }
       },
     })
   ).current;
 
-  const animatedRowStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
+  const animatedRowStyle = useAnimatedStyle(() => {
+    const rightRadius = interpolate(
+      translateX.value,
+      [-swipeLeftReveal, 0],
+      [0, 12],
+      Extrapolation.CLAMP
+    );
+    const leftRadius = interpolate(
+      translateX.value,
+      [0, swipeRightReveal],
+      [12, 0],
+      Extrapolation.CLAMP
+    );
+    return {
+      transform: [{ translateX: translateX.value }],
+      borderTopLeftRadius: leftRadius,
+      borderBottomLeftRadius: leftRadius,
+      borderTopRightRadius: rightRadius,
+      borderBottomRightRadius: rightRadius,
+    };
+  });
 
   return (
     <View style={archivedStyles.rowWrapper}>
@@ -870,6 +930,7 @@ function ArchivedChainRow({
           isConfigured={true}
           onSelect={() => {}}
           onShowDetail={onShowDetail}
+          cornerRadius={0}
         />
       </Animated.View>
     </View>
@@ -889,7 +950,7 @@ const archivedStyles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 160,
-    borderRadius: 12,
+    overflow: 'hidden',
   },
   rowActionsLeft: {
     position: 'absolute',
@@ -1149,9 +1210,24 @@ export function IdleScreen({
     </View>
   );
 
+  const isArchivedPage = viewedIndex === flatListData.length - 1;
+
   const renderArchivedPage = () => (
     <View style={styles.pageWrapper}>
       <View style={styles.archivedHeader}>
+        <Pressable
+          onPress={() => {
+            flatListRef.current?.scrollToIndex({
+              index: flatListData.length - 2,
+              animated: true,
+            });
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
+          style={styles.archivedBackButton}
+          hitSlop={16}
+        >
+          <Text style={styles.archivedBackText}>← 返回</Text>
+        </Pressable>
         <Text style={styles.archivedTitle}>已归档</Text>
       </View>
       <View style={styles.archivedContent}>
@@ -1247,6 +1323,7 @@ export function IdleScreen({
         }
         horizontal
         pagingEnabled
+        scrollEnabled={!isArchivedPage}
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -1305,6 +1382,17 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.backgroundSecondary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  archivedBackButton: {
+    paddingVertical: spacing.xs,
+    paddingRight: spacing.sm,
+  },
+  archivedBackText: {
+    ...typography.body,
+    color: colors.accent,
   },
   archivedTitle: {
     ...typography.title,
