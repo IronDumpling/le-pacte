@@ -630,7 +630,7 @@ function ChainCard({
   return (
     <Pressable
       onPress={handlePress}
-      style={[styles.chainCard, isActive && styles.chainCardActive]}
+      style={styles.chainCard}
     >
       <View style={styles.chainCardTop}>
         <Text style={styles.chainTheme} numberOfLines={1}>
@@ -915,15 +915,10 @@ const styles = StyleSheet.create({
   chainCard: {
     width: '100%',
     height: 160,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#1E2A3A',
     borderRadius: 12,
     padding: spacing.lg,
     justifyContent: 'space-between',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  chainCardActive: {
-    borderColor: colors.primary,
   },
   chainCardTop: {
     flexDirection: 'row',
@@ -957,7 +952,7 @@ const styles = StyleSheet.create({
   addCard: {
     width: '100%',
     height: 160,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: '#1E2A3A',
     borderRadius: 12,
     borderWidth: 2,
     borderStyle: 'dashed',
