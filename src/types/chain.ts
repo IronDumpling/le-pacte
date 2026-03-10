@@ -21,6 +21,7 @@ export interface Chain {
   length: number;
   precedentRules: PrecedentRule[];
   reservationDurationMs: number;
+  reservationDurationLocked?: boolean;
   focusTargetMs: number | null;
   theme: string | null;
   triggerRitual: string | null;
@@ -33,6 +34,7 @@ export function createDefaultChain(): Chain {
     length: 0,
     precedentRules: [],
     reservationDurationMs: 15 * 60 * 1000,
+    reservationDurationLocked: false,
     focusTargetMs: null,
     theme: null,
     triggerRitual: null,

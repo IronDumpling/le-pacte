@@ -4,7 +4,7 @@
 
 ## 核心状态机
 
-- **IDLE (空闲态)** → 预约启动 → **RESERVED (预约态)**
+- **IDLE (空闲态)** → 预定启动 → **RESERVED (预定态)**
 - **RESERVED** → 15 分钟内入座 → **FOCUSED (专注态)** | 超时 → **IDLE** (链条断裂)
 - **FOCUSED** → 长按完成 → **IDLE** (Chain +1) | 退后台/暂停 → **DILEMMA (判例结算态)**
 - **DILEMMA** → 毁灭 → **IDLE** (链条清零) | 妥协 → **FOCUSED** (写入宪法)

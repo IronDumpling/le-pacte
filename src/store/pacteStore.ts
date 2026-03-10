@@ -74,7 +74,17 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       storage.getChains(),
       storage.getActiveChainId(),
     ]);
-    const finalChains = chains.length > 0 ? chains : [createDefaultChain()];
+    let finalChains = chains.length > 0 ? chains : [createDefaultChain()];
+    if (chains.length > 0) {
+      finalChains = finalChains.map((c) => ({
+        ...c,
+        reservationDurationLocked:
+          c.reservationDurationLocked === undefined
+            ? true
+            : c.reservationDurationLocked,
+      }));
+      persistChains(finalChains);
+    }
     if (chains.length === 0) persistChains(finalChains);
     const validActiveId =
       storedActiveId && finalChains.some((c) => c.id === storedActiveId)

@@ -406,7 +406,7 @@ function ChainCard({
   isActive: boolean;
   onSelect: () => void;
 }) {
-  const themeLabel = chain.theme || '未设置主题';
+  const themeLabel = chain.theme || '专注';
   return (
     <Pressable
       onPress={onSelect}
@@ -439,7 +439,7 @@ function AddChainCard({
       style={styles.addCard}
     >
       <Text style={styles.addText}>+</Text>
-      <Text style={styles.addHint}>添加链条</Text>
+      <Text style={styles.addHint}>添加契约链</Text>
     </Pressable>
   );
 }
@@ -636,7 +636,7 @@ export function IdleScreen({
                 />
                 <ChainNodeList
                   chain={viewedChain}
-                  showPendingNode={canReserve}
+                  showPendingNode={!!canReserve}
                 />
               </>
             ) : (
@@ -646,7 +646,7 @@ export function IdleScreen({
 
           <View style={styles.actions}>
             <HeavyButton
-              title={canReserve ? '预约启动' : '配置链条'}
+              title={canReserve ? '预定契约' : '配置契约链'}
               onPress={handleMainButtonPress}
               variant="primary"
             />

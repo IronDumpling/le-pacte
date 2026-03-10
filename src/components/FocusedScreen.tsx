@@ -91,7 +91,9 @@ export function FocusedScreen() {
         edges={['top']}
       >
         <View style={styles.content}>
-          <Text style={styles.label}>专注中</Text>
+          <Text style={styles.label}>
+            {chain?.theme || '专注'}中
+          </Text>
           {targetReached ? (
             <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
           ) : (

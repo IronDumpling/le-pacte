@@ -88,7 +88,7 @@ export function DilemmaModal() {
 
           <View style={styles.options}>
             <HeavyButton
-              title="承认失败，粉碎当前链条"
+              title="承认失败，粉碎当前契约链"
               onPress={handleDestruction}
               variant="destruction"
               style={styles.optionButton}

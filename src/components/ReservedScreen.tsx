@@ -27,10 +27,10 @@ export function ReservedScreen() {
   const last20SecondsCount = Math.ceil(remainingMs / 1000);
 
   const reservationMinutes = Math.floor(durationMs / 60000);
-  const triggerRitual = chain?.triggerRitual || '开始专注';
+  const triggerRitual = chain?.triggerRitual || '开始';
   const theme = chain?.theme || '专注';
 
-  const buttonLabel = chain?.triggerRitual || '开始专注';
+  const buttonLabel = chain?.triggerRitual || '开始';
 
   return (
     <SafeAreaView
@@ -44,7 +44,7 @@ export function ReservedScreen() {
             isLast20Seconds && styles.textRed,
           ]}
         >
-          预约缓冲
+          预定缓冲
         </Text>
         {isLast20Seconds ? (
           <Text style={styles.bigCountdown}>{last20SecondsCount}</Text>
