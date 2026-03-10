@@ -3,6 +3,7 @@ import type { Chain } from '../types/chain';
 
 const KEYS = {
   CHAINS: '@lepacte/chains',
+  ARCHIVED_CHAINS: '@lepacte/archived_chains',
   ACTIVE_CHAIN_ID: '@lepacte/active_chain_id',
   RESERVED_AT: '@lepacte/reserved_at',
   FOCUSED_STARTED_AT: '@lepacte/focused_started_at',
@@ -21,6 +22,20 @@ export const storage = {
 
   async setChains(chains: Chain[]): Promise<void> {
     await AsyncStorage.setItem(KEYS.CHAINS, JSON.stringify(chains));
+  },
+
+  async getArchivedChains(): Promise<Chain[]> {
+    const value = await AsyncStorage.getItem(KEYS.ARCHIVED_CHAINS);
+    if (!value) return [];
+    try {
+      return JSON.parse(value);
+    } catch {
+      return [];
+    }
+  },
+
+  async setArchivedChains(chains: Chain[]): Promise<void> {
+    await AsyncStorage.setItem(KEYS.ARCHIVED_CHAINS, JSON.stringify(chains));
   },
 
   async getActiveChainId(): Promise<string | null> {

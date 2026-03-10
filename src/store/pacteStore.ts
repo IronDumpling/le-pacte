@@ -22,6 +22,7 @@ interface SessionPause {
 interface PacteState {
   currentState: PacteStateType;
   chains: Chain[];
+  archivedChains: Chain[];
   activeChainId: string | null;
   reservedAt: number | null;
   focusedStartedAt: number | null;
@@ -34,6 +35,10 @@ interface PacteState {
 
 interface PacteActions {
   addChain: () => void;
+  archiveChain: (id: string) => void;
+  unarchiveChain: (id: string) => void;
+  deleteArchivedChain: (id: string) => void;
+  pinArchivedChain: (id: string) => void;
   setActiveChain: (id: string | null) => void;
   updateChain: (id: string, partial: Partial<Chain>) => void;
   addPrecedentRule: (chainId: string, text: string) => void;
@@ -57,9 +62,14 @@ function persistChains(chains: Chain[]) {
   storage.setChains(chains);
 }
 
+function persistArchivedChains(archivedChains: Chain[]) {
+  storage.setArchivedChains(archivedChains);
+}
+
 export const usePacteStore = create<PacteStore>((set, get) => ({
   currentState: 'IDLE',
   chains: [],
+  archivedChains: [],
   activeChainId: null,
   reservedAt: null,
   focusedStartedAt: null,
@@ -70,8 +80,9 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   _hydrated: false,
 
   hydrate: async () => {
-    const [chains, storedActiveId] = await Promise.all([
+    const [chains, archivedChains, storedActiveId] = await Promise.all([
       storage.getChains(),
+      storage.getArchivedChains(),
       storage.getActiveChainId(),
     ]);
     let finalChains = chains.length > 0 ? chains : [createDefaultChain()];
@@ -116,6 +127,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     }
     set({
       chains: finalChains,
+      archivedChains: archivedChains ?? [],
       activeChainId: validActiveId,
       _hydrated: true,
     });
@@ -128,6 +140,59 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     set({ chains: next, activeChainId: newChain.id });
     persistChains(next);
     storage.setActiveChainId(newChain.id);
+  },
+
+  archiveChain: (id: string) => {
+    const { chains, archivedChains, activeChainId } = get();
+    const chain = chains.find((c) => c.id === id);
+    if (!chain) return;
+    const nextChains = chains.filter((c) => c.id !== id);
+    const nextArchived = [...archivedChains, chain];
+    let newActiveId = activeChainId;
+    if (activeChainId === id) {
+      newActiveId = nextChains[0]?.id ?? null;
+      storage.setActiveChainId(newActiveId);
+    }
+    if (nextChains.length === 0) {
+      const defaultChain = createDefaultChain();
+      nextChains.push(defaultChain);
+      newActiveId = defaultChain.id;
+      storage.setActiveChainId(newActiveId);
+    }
+    set({
+      chains: nextChains,
+      archivedChains: nextArchived,
+      activeChainId: newActiveId,
+    });
+    persistChains(nextChains);
+    persistArchivedChains(nextArchived);
+  },
+
+  unarchiveChain: (id: string) => {
+    const { chains, archivedChains } = get();
+    const chain = archivedChains.find((c) => c.id === id);
+    if (!chain) return;
+    const nextArchived = archivedChains.filter((c) => c.id !== id);
+    const nextChains = [...chains, chain];
+    set({ chains: nextChains, archivedChains: nextArchived });
+    persistChains(nextChains);
+    persistArchivedChains(nextArchived);
+  },
+
+  deleteArchivedChain: (id: string) => {
+    const { archivedChains } = get();
+    const next = archivedChains.filter((c) => c.id !== id);
+    set({ archivedChains: next });
+    persistArchivedChains(next);
+  },
+
+  pinArchivedChain: (id: string) => {
+    const { archivedChains } = get();
+    const chain = archivedChains.find((c) => c.id === id);
+    if (!chain) return;
+    const next = [chain, ...archivedChains.filter((c) => c.id !== id)];
+    set({ archivedChains: next });
+    persistArchivedChains(next);
   },
 
   setActiveChain: (id: string | null) => {

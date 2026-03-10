@@ -8,6 +8,7 @@ import {
   ScrollView,
   Modal,
   Dimensions,
+  PanResponder,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
@@ -19,10 +20,13 @@ import Animated, {
   withSpring,
   withTiming,
   Easing,
+  interpolate,
+  runOnJS,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { MaterialIcons } from '@expo/vector-icons';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
 import { colors, spacing, typography } from '../design/theme';
@@ -408,6 +412,11 @@ const chainNodeStyles = StyleSheet.create({
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
+type FlatListItem =
+  | { type: 'chain'; chain: Chain }
+  | { type: 'add' }
+  | { type: 'archived' };
+
 function ChainDetailModal({
   chain,
   onClose,
@@ -602,6 +611,128 @@ function ChainCountBadge({
   );
 }
 
+const ARCHIVE_REVEAL_HEIGHT = 60;
+const COLLAPSE_DURATION = 300;
+const MINIMIZE_DURATION = 350;
+
+function SwipeUpPageWrapper({
+  header,
+  body,
+  actions,
+  onArchive,
+}: {
+  header: React.ReactNode;
+  body: React.ReactNode;
+  actions: React.ReactNode;
+  onArchive: () => void;
+}) {
+  const translateY = useSharedValue(0);
+  const bodyTranslateY = useSharedValue(0);
+  const headerTranslateX = useSharedValue(0);
+  const headerScale = useSharedValue(1);
+  const prevGesture = useRef(0);
+  const isArchiving = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        if (isArchiving.current) return false;
+        const { dy } = gestureState;
+        return Math.abs(dy) > 15;
+      },
+      onPanResponderGrant: () => {
+        prevGesture.current = translateY.value;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const { dy } = gestureState;
+        const next = Math.max(-ARCHIVE_REVEAL_HEIGHT, Math.min(0, prevGesture.current + dy));
+        translateY.value = next;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const { dy, vy } = gestureState;
+        const current = translateY.value;
+        if (current < -ARCHIVE_REVEAL_HEIGHT / 2 || vy < -0.5) {
+          translateY.value = withTiming(-ARCHIVE_REVEAL_HEIGHT, { duration: 200 });
+        } else {
+          translateY.value = withTiming(0, { duration: 200 });
+        }
+      },
+    })
+  ).current;
+
+  const animatedContentStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const handleArchivePress = useCallback(() => {
+    if (isArchiving.current) return;
+    isArchiving.current = true;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    translateY.value = withTiming(-ARCHIVE_REVEAL_HEIGHT, { duration: 100 });
+    bodyTranslateY.value = withTiming(-800, { duration: COLLAPSE_DURATION, easing: Easing.out(Easing.cubic) }, () => {
+      headerTranslateX.value = withTiming(SCREEN_WIDTH * 0.35, { duration: MINIMIZE_DURATION, easing: Easing.in(Easing.cubic) });
+      headerScale.value = withTiming(0.15, { duration: MINIMIZE_DURATION, easing: Easing.in(Easing.cubic) }, (finished) => {
+        if (finished) {
+          runOnJS(onArchive)();
+        }
+      });
+    });
+  }, [onArchive]);
+
+  const animatedButtonStyle = useAnimatedStyle(() => {
+    const progress = interpolate(
+      translateY.value,
+      [0, -ARCHIVE_REVEAL_HEIGHT],
+      [0, 1]
+    );
+    return {
+      transform: [{ scale: progress }],
+      opacity: progress,
+    };
+  });
+
+  const animatedBodyStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: bodyTranslateY.value }],
+  }));
+
+  const animatedHeaderStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: headerTranslateX.value },
+      { scale: headerScale.value },
+    ],
+  }));
+
+  return (
+    <View style={styles.swipeUpPageContainer}>
+      <View style={styles.archiveButtonSlot}>
+        <Animated.View style={[styles.archiveButtonWrap, animatedButtonStyle]}>
+          <Pressable
+            onPress={handleArchivePress}
+            style={styles.archiveButton}
+            hitSlop={8}
+          >
+            <MaterialIcons name="archive" size={28} color={colors.text} />
+          </Pressable>
+        </Animated.View>
+      </View>
+      <Animated.View
+        style={[styles.swipeUpPageContent, animatedContentStyle]}
+        {...panResponder.panHandlers}
+      >
+        <Animated.View style={animatedHeaderStyle}>
+          {header}
+        </Animated.View>
+        <Animated.View style={[styles.swipeUpBody, animatedBodyStyle]}>
+          {body}
+          {actions}
+        </Animated.View>
+      </Animated.View>
+    </View>
+  );
+}
+
 function ChainCard({
   chain,
   isActive,
@@ -649,6 +780,146 @@ function ChainCard({
   );
 }
 
+const ROW_SWIPE_BUTTON_WIDTH = 56;
+
+function ArchivedChainRow({
+  chain,
+  onShowDetail,
+  onUnarchive,
+  onDelete,
+  onPin,
+}: {
+  chain: Chain;
+  onShowDetail: () => void;
+  onUnarchive: () => void;
+  onDelete: () => void;
+  onPin: () => void;
+}) {
+  const translateX = useSharedValue(0);
+  const prevGesture = useRef(0);
+  const swipeLeftReveal = ROW_SWIPE_BUTTON_WIDTH * 2;
+  const swipeRightReveal = ROW_SWIPE_BUTTON_WIDTH;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        const { dx } = gestureState;
+        return Math.abs(dx) > 15;
+      },
+      onPanResponderGrant: () => {
+        prevGesture.current = translateX.value;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const { dx } = gestureState;
+        const next = Math.max(-swipeLeftReveal, Math.min(swipeRightReveal, prevGesture.current + dx));
+        translateX.value = next;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const { dx, vx } = gestureState;
+        if (dx < -30 || vx < -0.3) {
+          translateX.value = withTiming(-swipeLeftReveal, { duration: 200 });
+        } else if (dx > 30 || vx > 0.3) {
+          translateX.value = withTiming(swipeRightReveal, { duration: 200 });
+        } else {
+          translateX.value = withTiming(0, { duration: 200 });
+        }
+      },
+    })
+  ).current;
+
+  const animatedRowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  return (
+    <View style={archivedStyles.rowWrapper}>
+      <View style={archivedStyles.rowActionsLeft}>
+        <Pressable style={archivedStyles.pinButton} onPress={onPin}>
+          <MaterialIcons name="push-pin" size={24} color={colors.text} />
+        </Pressable>
+      </View>
+      <View style={archivedStyles.rowActionsRight}>
+        <Pressable style={archivedStyles.unarchiveButton} onPress={onUnarchive}>
+          <MaterialIcons name="unarchive" size={24} color={colors.text} />
+        </Pressable>
+        <Pressable style={archivedStyles.deleteButton} onPress={onDelete}>
+          <MaterialIcons name="delete" size={24} color={colors.text} />
+        </Pressable>
+      </View>
+      <Animated.View
+        style={[archivedStyles.rowContent, animatedRowStyle]}
+        {...panResponder.panHandlers}
+      >
+        <ChainCard
+          chain={chain}
+          isActive={false}
+          isConfigured={true}
+          onSelect={() => {}}
+          onShowDetail={onShowDetail}
+        />
+      </Animated.View>
+    </View>
+  );
+}
+
+const archivedStyles = StyleSheet.create({
+  rowWrapper: {
+    width: '100%',
+    height: 160,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  rowContent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 160,
+    borderRadius: 12,
+  },
+  rowActionsLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: ROW_SWIPE_BUTTON_WIDTH,
+    backgroundColor: colors.accent,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowActionsRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: ROW_SWIPE_BUTTON_WIDTH * 2,
+    flexDirection: 'row',
+  },
+  pinButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+  },
+  unarchiveButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+  },
+  deleteButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.destruction,
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+});
+
 function AddChainCard({
   onPress,
   onHaptic,
@@ -677,16 +948,28 @@ export function IdleScreen({
   const router = useRouter();
   const {
     chains,
+    archivedChains,
     activeChainId,
     addChain,
     setActiveChain,
     reserve,
+    archiveChain,
+    unarchiveChain,
+    deleteArchivedChain,
+    pinArchivedChain,
     clearIdleAnimation,
   } = usePacteStore();
 
   const [viewedIndex, setViewedIndex] = useState<number>(0);
   const [chainDetailModalChain, setChainDetailModalChain] = useState<Chain | null>(null);
+  const [deleteConfirmChain, setDeleteConfirmChain] = useState<Chain | null>(null);
   const activeChain = chains.find((c) => c.id === activeChainId);
+
+  const flatListData: FlatListItem[] = [
+    ...chains.map((c) => ({ type: 'chain' as const, chain: c })),
+    { type: 'add' as const },
+    { type: 'archived' as const },
+  ];
 
   const flatListRef = useRef<FlatList>(null);
   const lastHapticIndex = useRef<number | null>(null);
@@ -776,48 +1059,57 @@ export function IdleScreen({
     const itemCanReserve = isConfigured;
     return (
       <View style={styles.pageWrapper}>
-        <View style={styles.pageHeader}>
-          <ChainCard
-            chain={item}
-            isActive={item.id === activeChainId}
-            isConfigured={isConfigured}
-            animateSuccess={
-              item.id === activeChainId ? animateSuccess : undefined
-            }
-            animateBreak={
-              item.id === activeChainId ? animateBreak : undefined
-            }
-            onSelect={() => handleChainSelect(item)}
-            onShowDetail={isConfigured ? () => setChainDetailModalChain(item) : undefined}
-          />
-        </View>
-        <View style={styles.pageContent}>
-          {isConfigured ? (
-            <ChainNodeList
-              chain={item}
-              showPendingNode={!!itemCanReserve}
-            />
-          ) : (
-            <View style={styles.unconfiguredPlaceholder} />
-          )}
-        </View>
-        <View style={styles.pageActions}>
-          <HeavyButton
-            title={itemCanReserve ? '预定契约' : '配置契约链'}
-            onPress={() => {
-              if (itemCanReserve) {
-                setActiveChain(item.id);
-                reserve();
-              } else {
-                router.push({
-                  pathname: '/chain-settings',
-                  params: { id: item.id },
-                });
-              }
-            }}
-            variant="primary"
-          />
-        </View>
+        <SwipeUpPageWrapper
+          onArchive={() => archiveChain(item.id)}
+          header={
+            <View style={styles.pageHeader}>
+              <ChainCard
+                chain={item}
+                isActive={item.id === activeChainId}
+                isConfigured={isConfigured}
+                animateSuccess={
+                  item.id === activeChainId ? animateSuccess : undefined
+                }
+                animateBreak={
+                  item.id === activeChainId ? animateBreak : undefined
+                }
+                onSelect={() => handleChainSelect(item)}
+                onShowDetail={isConfigured ? () => setChainDetailModalChain(item) : undefined}
+              />
+            </View>
+          }
+          body={
+            <View style={styles.pageContent}>
+              {isConfigured ? (
+                <ChainNodeList
+                  chain={item}
+                  showPendingNode={!!itemCanReserve}
+                />
+              ) : (
+                <View style={styles.unconfiguredPlaceholder} />
+              )}
+            </View>
+          }
+          actions={
+            <View style={styles.pageActions}>
+              <HeavyButton
+                title={itemCanReserve ? '预定契约' : '配置契约链'}
+                onPress={() => {
+                  if (itemCanReserve) {
+                    setActiveChain(item.id);
+                    reserve();
+                  } else {
+                    router.push({
+                      pathname: '/chain-settings',
+                      params: { id: item.id },
+                    });
+                  }
+                }}
+                variant="primary"
+              />
+            </View>
+          }
+        />
       </View>
     );
   };
@@ -842,6 +1134,51 @@ export function IdleScreen({
     </View>
   );
 
+  const renderArchivedPage = () => (
+    <View style={styles.pageWrapper}>
+      <View style={styles.archivedHeader}>
+        <Text style={styles.archivedTitle}>已归档</Text>
+      </View>
+      <View style={styles.archivedContent}>
+        {archivedChains.length === 0 ? (
+          <Text style={styles.archivedEmpty}>暂无归档</Text>
+        ) : (
+          <FlatList
+            data={archivedChains}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ArchivedChainRow
+                chain={item}
+                onShowDetail={() => setChainDetailModalChain(item)}
+                onUnarchive={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  unarchiveChain(item.id);
+                }}
+                onDelete={() => setDeleteConfirmChain(item)}
+                onPin={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  pinArchivedChain(item.id);
+                }}
+              />
+            )}
+            contentContainerStyle={styles.archivedList}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </View>
+    </View>
+  );
+
+  const renderItem = ({ item, index }: { item: FlatListItem; index: number }) => {
+    if (item.type === 'chain') {
+      return renderChainPage({ item: item.chain });
+    }
+    if (item.type === 'add') {
+      return renderAddPage();
+    }
+    return renderArchivedPage();
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {chainDetailModalChain && (
@@ -850,11 +1187,49 @@ export function IdleScreen({
           onClose={() => setChainDetailModalChain(null)}
         />
       )}
+      {deleteConfirmChain && (
+        <Modal visible transparent animationType="fade">
+          <Pressable
+            style={modalStyles.overlay}
+            onPress={() => setDeleteConfirmChain(null)}
+          >
+            <Pressable
+              style={modalStyles.content}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text style={modalStyles.title}>永久删除？</Text>
+              <Text style={modalStyles.detailItem}>
+                此操作不可撤销
+              </Text>
+              <View style={styles.deleteModalActions}>
+                <Pressable
+                  style={styles.deleteModalCancel}
+                  onPress={() => setDeleteConfirmChain(null)}
+                >
+                  <Text style={styles.deleteModalCancelText}>取消</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.deleteModalConfirm}
+                  onPress={() => {
+                    deleteArchivedChain(deleteConfirmChain.id);
+                    setDeleteConfirmChain(null);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                  }}
+                >
+                  <Text style={styles.deleteModalConfirmText}>删除</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
       <FlatList
         ref={flatListRef}
-        data={chains}
-        renderItem={renderChainPage}
-        keyExtractor={(item) => item.id}
+        data={flatListData}
+        renderItem={renderItem}
+        keyExtractor={(item) =>
+          item.type === 'chain' ? item.chain.id : item.type
+        }
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -867,7 +1242,6 @@ export function IdleScreen({
         snapToAlignment="start"
         decelerationRate="fast"
         style={styles.flatList}
-        ListFooterComponent={renderAddPage}
         onScrollToIndexFailed={(info) => {
           setTimeout(
             () =>
@@ -912,6 +1286,55 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 120,
   },
+  archivedHeader: {
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.backgroundSecondary,
+  },
+  archivedTitle: {
+    ...typography.title,
+    color: colors.text,
+  },
+  archivedContent: {
+    flex: 1,
+    padding: spacing.lg,
+  },
+  archivedEmpty: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+  },
+  archivedList: {
+    paddingBottom: spacing.xl,
+  },
+  deleteModalActions: {
+    flexDirection: 'row',
+    marginTop: spacing.lg,
+    gap: spacing.md,
+  },
+  deleteModalCancel: {
+    flex: 1,
+    padding: spacing.md,
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 8,
+  },
+  deleteModalCancelText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  deleteModalConfirm: {
+    flex: 1,
+    padding: spacing.md,
+    alignItems: 'center',
+    backgroundColor: colors.destruction,
+    borderRadius: 8,
+  },
+  deleteModalConfirmText: {
+    ...typography.body,
+    color: colors.text,
+  },
   chainCard: {
     width: '100%',
     height: 160,
@@ -948,6 +1371,40 @@ const styles = StyleSheet.create({
   chainRules: {
     ...typography.body,
     color: colors.textMuted,
+  },
+  swipeUpPageContainer: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  archiveButtonSlot: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: ARCHIVE_REVEAL_HEIGHT,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: spacing.lg,
+  },
+  archiveButtonWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  archiveButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swipeUpPageContent: {
+    flex: 1,
+  },
+  swipeUpBody: {
+    flex: 1,
+    overflow: 'hidden',
   },
   addCard: {
     width: '100%',
