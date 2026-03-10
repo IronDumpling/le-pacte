@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
-import { HeavyButton } from '../design/components';
+import { HeavyButton, CircularProgressBar } from '../design/components';
 import {
   useFocusCountdown,
   useFocusedElapsed,
@@ -74,11 +74,19 @@ export function FocusedScreen() {
           <Text style={styles.pauseReason} numberOfLines={4}>
             {reasonText}
           </Text>
-          {pausedTargetReached ? (
-            <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
-          ) : (
-            <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
-          )}
+          <View style={styles.timerWrapper}>
+            <CircularProgressBar
+              progress={Math.min(1, (frozenElapsedMs ?? 0) / targetMs)}
+              size={220}
+              strokeWidth={6}
+              strokeColor={themeColors.accent}
+            />
+            {pausedTargetReached ? (
+              <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
+            ) : (
+              <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
+            )}
+          </View>
         </View>
         <View style={styles.actions}>
           <HeavyButton
@@ -105,11 +113,19 @@ export function FocusedScreen() {
           <Text style={styles.label}>
             {chain?.theme || t('idle_defaultTheme')}{t('focus_themeSuffix')}
           </Text>
-          {targetReached ? (
-            <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
-          ) : (
-            <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
-          )}
+          <View style={styles.timerWrapper}>
+            <CircularProgressBar
+              progress={targetReached ? 1 : (targetMs - displayRemaining) / targetMs}
+              size={220}
+              strokeWidth={6}
+              strokeColor={themeColors.accent}
+            />
+            {targetReached ? (
+              <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
+            ) : (
+              <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
+            )}
+          </View>
           {targetReached && (
             <Text style={styles.extraHint}>{t('focus_extraHint')}</Text>
           )}
@@ -183,6 +199,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  timerWrapper: {
+    width: 220,
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   label: {
     ...typography.chainLabel,

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
-import { HeavyButton } from '../design/components';
+import { HeavyButton, CircularProgressBar } from '../design/components';
 import { useReservedCountdown, formatMsToTime } from '../hooks/useTimer';
 import { colors, typography, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
@@ -54,25 +54,34 @@ export function ReservedScreen() {
         >
           {t('reserved_buffer')}
         </Text>
-        {isLast20Seconds ? (
-          <Text
-            style={[
-              styles.bigCountdown,
-              { color: '#FFFFFF' },
-            ]}
-          >
-            {last20SecondsCount}
-          </Text>
-        ) : (
-          <Text
-            style={[
-              styles.timer,
-              { color: themeColors.text },
-            ]}
-          >
-            {formatMsToTime(remainingMs)}
-          </Text>
-        )}
+        <View style={styles.timerWrapper}>
+          <CircularProgressBar
+            progress={(durationMs - remainingMs) / durationMs}
+            size={220}
+            strokeWidth={6}
+            strokeColor={isLast20Seconds ? '#FFFFFF' : themeColors.accent}
+            backgroundColor={isLast20Seconds ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'}
+          />
+          {isLast20Seconds ? (
+            <Text
+              style={[
+                styles.bigCountdown,
+                { color: '#FFFFFF' },
+              ]}
+            >
+              {last20SecondsCount}
+            </Text>
+          ) : (
+            <Text
+              style={[
+                styles.timer,
+                { color: themeColors.text },
+              ]}
+            >
+              {formatMsToTime(remainingMs)}
+            </Text>
+          )}
+        </View>
         <Text
           style={[
             styles.hint,
@@ -110,6 +119,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  timerWrapper: {
+    width: 220,
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
   label: {
     ...typography.chainLabel,
