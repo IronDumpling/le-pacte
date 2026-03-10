@@ -6,6 +6,7 @@
 export const colors = {
   background: '#121212',
   backgroundSecondary: '#1A1A1A',
+  focusBackground: '#1a3d1a',
   primary: '#4A6FA5',
   accent: '#7B8FA1',
   destruction: '#FF3B30',

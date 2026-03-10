@@ -13,7 +13,7 @@ import { colors, typography, spacing } from '../design/theme';
 
 interface PauseModalProps {
   precedentRules: PrecedentRule[];
-  onSelect: () => void;
+  onSelect: (ruleIndex: number, ruleText: string) => void;
   onBack: () => void;
 }
 
@@ -32,9 +32,9 @@ export function PauseModal({
         <FlatList
           data={precedentRules}
           keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <Pressable
-              onPress={onSelect}
+              onPress={() => onSelect(index + 1, item.text)}
               style={({ pressed }) => [
                 styles.ruleItem,
                 pressed && styles.ruleItemPressed,

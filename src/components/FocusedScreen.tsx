@@ -18,6 +18,7 @@ export function FocusedScreen() {
     activeChainId,
     focusedStartedAt,
     frozenElapsedMs,
+    pauseReason,
     completeFocus,
     triggerDilemma,
     triggerPause,
@@ -44,8 +45,8 @@ export function FocusedScreen() {
     setShowPauseModal(false);
   };
 
-  const handlePauseSelect = () => {
-    triggerPause();
+  const handlePauseSelect = (ruleIndex: number, ruleText: string) => {
+    triggerPause(ruleIndex, ruleText);
     setShowPauseModal(false);
   };
 
@@ -57,10 +58,15 @@ export function FocusedScreen() {
   const pausedTargetReached = isPaused && (frozenElapsedMs ?? 0) >= targetMs;
 
   if (isPaused) {
+    const reasonText = pauseReason
+      ? `已暂停\n引用下必为例规则第${pauseReason.ruleIndex}条：${pauseReason.text}`
+      : '已暂停';
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.content}>
-          <Text style={styles.label}>已暂停</Text>
+          <Text style={styles.pauseReason} numberOfLines={4}>
+            {reasonText}
+          </Text>
           {pausedTargetReached ? (
             <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
           ) : (
@@ -80,7 +86,10 @@ export function FocusedScreen() {
 
   return (
     <>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView
+        style={[styles.container, styles.focusContainer]}
+        edges={['top']}
+      >
         <View style={styles.content}>
           <Text style={styles.label}>专注中</Text>
           {targetReached ? (
@@ -154,6 +163,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: 'space-between',
   },
+  focusContainer: {
+    backgroundColor: colors.focusBackground,
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -164,6 +176,13 @@ const styles = StyleSheet.create({
     color: colors.accent,
     letterSpacing: 4,
     marginBottom: spacing.md,
+  },
+  pauseReason: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   timer: {
     ...typography.chainNumber,

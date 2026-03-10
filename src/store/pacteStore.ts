@@ -1,11 +1,23 @@
 import { create } from 'zustand';
 import { storage } from '../storage/storage';
-import type { Chain } from '../types/chain';
+import type { Chain, NodeMetadata, NodePause } from '../types/chain';
 import { createDefaultChain } from '../types/chain';
 
 export type PacteStateType = 'IDLE' | 'RESERVED' | 'FOCUSED' | 'DILEMMA';
 
 export type IdleAnimationType = 'success' | 'break' | null;
+
+export interface PauseReason {
+  ruleIndex: number;
+  text: string;
+}
+
+interface SessionPause {
+  atMinute: number;
+  startMs: number;
+  ruleIndex: number;
+  durationMs?: number;
+}
 
 interface PacteState {
   currentState: PacteStateType;
@@ -14,6 +26,8 @@ interface PacteState {
   reservedAt: number | null;
   focusedStartedAt: number | null;
   frozenElapsedMs: number | null;
+  pauseReason: PauseReason | null;
+  currentSessionPauses: SessionPause[];
   lastIdleAnimation: IdleAnimationType;
   _hydrated: boolean;
 }
@@ -28,7 +42,7 @@ interface PacteActions {
   timeoutReserved: () => void;
   completeFocus: () => void;
   triggerDilemma: () => void;
-  triggerPause: () => void;
+  triggerPause: (ruleIndex: number, ruleText: string) => void;
   chooseDestruction: () => void;
   chooseCompromise: (exceptionText: string) => void;
   returnToFocus: () => void;
@@ -50,6 +64,8 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   reservedAt: null,
   focusedStartedAt: null,
   frozenElapsedMs: null,
+  pauseReason: null,
+  currentSessionPauses: [],
   lastIdleAnimation: null,
   _hydrated: false,
 
@@ -159,17 +175,48 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   },
 
   completeFocus: () => {
-    const { currentState, chains, activeChainId } = get();
+    const {
+      currentState,
+      chains,
+      activeChainId,
+      focusedStartedAt,
+      currentSessionPauses,
+    } = get();
     if (currentState !== 'FOCUSED' || !activeChainId) return;
     const chain = chains.find((c) => c.id === activeChainId);
-    if (!chain) return;
-    const next = chains.map((c) =>
-      c.id === activeChainId ? { ...c, length: c.length + 1 } : c
-    );
+    if (!chain || chain.focusTargetMs === null) return;
+    const elapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
+    const targetMs = chain.focusTargetMs;
+    const extraDurationMs =
+      elapsedMs > targetMs ? elapsedMs - targetMs : undefined;
+    const pauses: NodePause[] = currentSessionPauses
+      .filter((p) => p.durationMs !== undefined)
+      .map((p) => ({
+        atMinute: p.atMinute,
+        durationMs: p.durationMs!,
+        ruleIndex: p.ruleIndex,
+      }));
+    const newNodeIndex = chain.length;
+    const metadata: NodeMetadata = {};
+    if (extraDurationMs !== undefined) metadata.extraDurationMs = extraDurationMs;
+    if (pauses.length > 0) metadata.pauses = pauses;
+    const next = chains.map((c) => {
+      if (c.id !== activeChainId) return c;
+      const nodeMetadata = {
+        ...(c.nodeMetadata ?? {}),
+        [newNodeIndex]: metadata,
+      };
+      return {
+        ...c,
+        length: c.length + 1,
+        nodeMetadata: Object.keys(metadata).length > 0 ? nodeMetadata : c.nodeMetadata,
+      };
+    });
     set({
       currentState: 'IDLE',
       chains: next,
       focusedStartedAt: null,
+      currentSessionPauses: [],
       lastIdleAnimation: 'success',
     });
     persistChains(next);
@@ -183,10 +230,18 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     set({ currentState: 'DILEMMA', frozenElapsedMs });
   },
 
-  triggerPause: () => {
-    const { focusedStartedAt } = get();
-    const frozenElapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
-    set({ frozenElapsedMs });
+  triggerPause: (ruleIndex: number, ruleText: string) => {
+    const { focusedStartedAt, currentSessionPauses } = get();
+    const elapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
+    const atMinute = Math.floor(elapsedMs / 60_000);
+    set({
+      frozenElapsedMs: elapsedMs,
+      pauseReason: { ruleIndex, text: ruleText },
+      currentSessionPauses: [
+        ...currentSessionPauses,
+        { atMinute, startMs: Date.now(), ruleIndex },
+      ],
+    });
   },
 
   chooseDestruction: () => {
@@ -201,13 +256,14 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       currentState: 'IDLE',
       chains: next,
       frozenElapsedMs: null,
+      currentSessionPauses: [],
       lastIdleAnimation: 'break',
     });
     persistChains(next);
   },
 
   chooseCompromise: (exceptionText: string) => {
-    const { currentState, chains, activeChainId, frozenElapsedMs } = get();
+    const { currentState, chains, activeChainId, frozenElapsedMs, currentSessionPauses } = get();
     if (currentState !== 'DILEMMA' || !activeChainId) return;
     const chain = chains.find((c) => c.id === activeChainId);
     if (!chain) return;
@@ -223,10 +279,26 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     const now = Date.now();
     const newFocusedStartedAt =
       frozenElapsedMs !== null ? now - frozenElapsedMs : now;
+    const rulesAfterAdd = next.find((c) => c.id === activeChainId)!
+      .precedentRules;
+    const ruleDisplayIndex = rulesAfterAdd.length;
+    const elapsedMs = frozenElapsedMs ?? 0;
+    const atMinute = Math.floor(elapsedMs / 60_000);
+    const sessionPauses =
+      newRule && trimmed
+        ? [
+            ...currentSessionPauses,
+            { atMinute, startMs: now, ruleIndex: ruleDisplayIndex },
+          ]
+        : currentSessionPauses;
     set({
       currentState: 'FOCUSED',
       chains: next,
-      frozenElapsedMs: null,
+      frozenElapsedMs: elapsedMs,
+      pauseReason: newRule
+        ? { ruleIndex: ruleDisplayIndex, text: newRule.text }
+        : null,
+      currentSessionPauses: sessionPauses,
       focusedStartedAt: newFocusedStartedAt,
     });
     persistChains(next);
@@ -242,17 +314,28 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     set({
       currentState: 'FOCUSED',
       frozenElapsedMs: null,
+      pauseReason: null,
       focusedStartedAt: newFocusedStartedAt,
     });
     storage.setFocusedStartedAt(newFocusedStartedAt);
   },
 
   resumeFromPause: () => {
-    const { frozenElapsedMs } = get();
+    const { frozenElapsedMs, currentSessionPauses } = get();
     if (frozenElapsedMs === null) return;
     const now = Date.now();
+    const last = currentSessionPauses[currentSessionPauses.length - 1];
+    const updated =
+      last && last.durationMs === undefined
+        ? [
+            ...currentSessionPauses.slice(0, -1),
+            { ...last, durationMs: now - last.startMs },
+          ]
+        : currentSessionPauses;
     set({
       frozenElapsedMs: null,
+      pauseReason: null,
+      currentSessionPauses: updated,
       focusedStartedAt: now - frozenElapsedMs,
     });
     storage.setFocusedStartedAt(now - frozenElapsedMs);
