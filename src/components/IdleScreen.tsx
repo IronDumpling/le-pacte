@@ -159,8 +159,9 @@ function ChainNodeRow({
   return (
     <Pressable onPress={onToggle} style={chainNodeStyles.row}>
       <View style={chainNodeStyles.chainVisual}>
-        {!isFirst && <View style={chainNodeStyles.chainLine} />}
-        <View style={chainNodeStyles.chainDot} />
+        <View style={chainNodeStyles.dotRow}>
+          <View style={chainNodeStyles.chainDot} />
+        </View>
         {showLineBelow &&
           (useDashedLine ? (
             <DashedChainLine />
@@ -175,7 +176,7 @@ function ChainNodeRow({
             {isExpanded ? '▲' : '▼'}
           </Text>
         </View>
-        {isExpanded && (
+          {isExpanded && (
           <View style={chainNodeStyles.expandedContent}>
             <Text style={chainNodeStyles.detailItem}>
               专注时长：{focusDuration}
@@ -236,18 +237,23 @@ function PendingNodeDot({
 
   return (
     <View style={chainNodeStyles.pendingRow}>
-      <View style={chainNodeStyles.chainVisual}>
+      <View style={chainNodeStyles.pendingChainVisual}>
         {hasNodesAbove &&
           (useDashedLine ? (
             <DashedChainLine />
           ) : (
             <View style={chainNodeStyles.chainLine} />
           ))}
-        <View style={chainNodeStyles.pendingContainer}>
-          <Animated.View style={[chainNodeStyles.pendingDot, dotStyle]} />
+        <View style={chainNodeStyles.pendingDotRow}>
+          <View style={chainNodeStyles.pendingContainer}>
+            <Animated.View style={[chainNodeStyles.pendingDot, dotStyle]} />
+          </View>
         </View>
       </View>
-      <Text style={chainNodeStyles.pendingLabel}>即将生成</Text>
+      <View style={chainNodeStyles.pendingLabelColumn}>
+        <View style={chainNodeStyles.pendingLabelSpacer} />
+        <Text style={chainNodeStyles.pendingLabel}>即将生成</Text>
+      </View>
     </View>
   );
 }
@@ -268,16 +274,20 @@ const chainNodeStyles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    minHeight: 48,
   },
   chainVisual: {
     width: 32,
     alignItems: 'center',
   },
+  dotRow: {
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chainLine: {
     width: 2,
     flex: 1,
-    minHeight: 12,
+    minHeight: 8,
     backgroundColor: colors.accent,
   },
   chainDot: {
@@ -291,6 +301,7 @@ const chainNodeStyles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   rowHeader: {
+    height: 28,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -338,8 +349,17 @@ const chainNodeStyles = StyleSheet.create({
   },
   pendingRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     marginTop: spacing.sm,
+    alignItems: 'stretch',
+  },
+  pendingChainVisual: {
+    width: 32,
+    alignItems: 'center',
+  },
+  pendingDotRow: {
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pendingContainer: {
     width: 18,
@@ -353,11 +373,20 @@ const chainNodeStyles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: colors.primary,
   },
+  pendingLabelColumn: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  pendingLabelSpacer: {
+    flex: 1,
+    minHeight: 0,
+  },
   pendingLabel: {
     ...typography.body,
     color: colors.textMuted,
     fontSize: 12,
-    marginLeft: spacing.md,
+    height: 28,
+    lineHeight: 28,
   },
 });
 
