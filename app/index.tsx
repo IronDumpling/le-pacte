@@ -2,14 +2,15 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { usePacteStore } from '../src/store/pacteStore';
 import { useAppState } from '../src/hooks/useAppState';
+import { useTheme } from '../src/theme/ThemeContext';
 import { IdleScreen } from '../src/components/IdleScreen';
 import { ReservedScreen } from '../src/components/ReservedScreen';
 import { FocusedScreen } from '../src/components/FocusedScreen';
 import { DilemmaModal } from '../src/components/DilemmaModal';
-import { colors } from '../src/design/theme';
 
 export default function Index() {
   const { currentState, lastIdleAnimation, _hydrated, hydrate } = usePacteStore();
+  const { colors } = useTheme();
 
   useAppState();
 

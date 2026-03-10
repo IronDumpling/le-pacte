@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
 } from '../src/design/components';
 import { RESERVATION_OPTIONS } from '../src/types/chain';
 import { colors, typography, spacing } from '../src/design/theme';
+import { useTheme } from '../src/theme/ThemeContext';
 
 const ITEM_HEIGHT = 56;
 const PICKER_VISIBLE_ITEMS = 5;
@@ -69,8 +70,10 @@ export default function ChainSettingsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { chains, updateChain, addPrecedentRule } = usePacteStore();
+  const { colors: themeColors } = useTheme();
 
   const chain = chains.find((c) => c.id === id);
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const [currentStep, setCurrentStep] = useState(0);
   const [theme, setTheme] = useState(chain?.theme ?? '专注');
   const [triggerRitual, setTriggerRitual] = useState(
@@ -444,7 +447,7 @@ export default function ChainSettingsScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="例如：完成工作报告（留空默认为专注）"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={themeColors.textMuted}
                 value={theme}
                 onChangeText={setTheme}
               />
@@ -466,7 +469,7 @@ export default function ChainSettingsScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="例如：入座、戴上耳机（留空默认为开始）"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={themeColors.textMuted}
                 value={triggerRitual}
                 onChangeText={setTriggerRitual}
               />
@@ -576,7 +579,7 @@ export default function ChainSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="例如：中途拿快递"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={themeColors.textMuted}
               value={addRuleInput}
               onChangeText={setAddRuleInput}
               multiline
@@ -607,10 +610,11 @@ export default function ChainSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(c: { background: string; backgroundSecondary: string; text: string; textMuted: string; accent: string; primary: string }) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: spacing.xl,
@@ -618,23 +622,23 @@ const styles = StyleSheet.create({
   },
   backText: {
     ...typography.body,
-    color: colors.accent,
+    color: c.accent,
     marginBottom: spacing.md,
   },
   title: {
     ...typography.title,
-    color: colors.text,
+    color: c.text,
   },
   progressBar: {
     height: 4,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: c.backgroundSecondary,
     borderRadius: 2,
     marginTop: spacing.sm,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 2,
   },
   content: {
@@ -646,18 +650,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.chainLabel,
-    color: colors.accent,
+    color: c.accent,
     marginBottom: spacing.md,
   },
   sectionSubtitle: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
   lockedText: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   pickerWrapper: {
     height: ITEM_HEIGHT * PICKER_VISIBLE_ITEMS,
@@ -670,7 +674,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: ITEM_HEIGHT * 2,
     height: ITEM_HEIGHT,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: c.backgroundSecondary,
     borderRadius: 8,
     zIndex: 0,
   },
@@ -688,10 +692,10 @@ const styles = StyleSheet.create({
   },
   pickerItemText: {
     ...typography.title,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   pickerItemTextSelected: {
-    color: colors.primary,
+    color: c.primary,
     fontWeight: '700',
   },
   focusTimeRow: {
@@ -706,7 +710,7 @@ const styles = StyleSheet.create({
   },
   focusTimeLabel: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.sm,
   },
   focusColonColumn: {
@@ -724,35 +728,35 @@ const styles = StyleSheet.create({
   focusTimeColon: {
     ...typography.chainNumber,
     fontSize: 40,
-    color: colors.primary,
+    color: c.primary,
   },
   input: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: c.backgroundSecondary,
     borderRadius: 8,
     padding: spacing.md,
-    color: colors.text,
+    color: c.text,
     ...typography.body,
     marginBottom: spacing.md,
   },
   rulesHint: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.lg,
   },
   ruleItem: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: c.backgroundSecondary,
     borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
   ruleItemText: {
     ...typography.body,
-    color: colors.text,
+    color: c.text,
   },
   addRuleBox: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: colors.textMuted,
+    borderColor: c.textMuted,
     borderRadius: 8,
     padding: spacing.lg,
     alignItems: 'center',
@@ -761,13 +765,13 @@ const styles = StyleSheet.create({
   },
   addRulePlus: {
     ...typography.title,
-    color: colors.accent,
+    color: c.accent,
     fontSize: 32,
     marginBottom: spacing.xs,
   },
   addRuleHint: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   footer: {
     padding: spacing.xl,
@@ -778,7 +782,7 @@ const styles = StyleSheet.create({
   },
   error: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     textAlign: 'center',
     marginTop: spacing.xxl,
   },
@@ -789,18 +793,18 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   addRuleContainer: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: c.backgroundSecondary,
     borderRadius: 16,
     padding: spacing.xl,
   },
   addRuleTitle: {
     ...typography.title,
-    color: colors.text,
+    color: c.text,
     marginBottom: spacing.sm,
   },
   addRuleSubtitle: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.lg,
   },
   addRuleActions: {
@@ -815,9 +819,10 @@ const styles = StyleSheet.create({
   },
   addRuleCancelText: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   addRuleSubmitBtn: {
     minWidth: 140,
   },
-});
+  });
+}

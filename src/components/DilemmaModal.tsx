@@ -14,9 +14,13 @@ import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
 import { colors, typography, spacing } from '../design/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLocale } from '../i18n/LocaleContext';
 
 export function DilemmaModal() {
   const { chooseDestruction, chooseCompromise, returnToFocus } = usePacteStore();
+  const { colors: themeColors } = useTheme();
+  const { t } = useLocale();
   const [exceptionText, setExceptionText] = useState('');
   const [showInput, setShowInput] = useState(false);
 
@@ -49,13 +53,13 @@ export function DilemmaModal() {
           style={styles.inputOverlay}
         >
           <View style={styles.inputContainer}>
-            <Text style={styles.inputTitle}>记录本次例外</Text>
+            <Text style={styles.inputTitle}>{t('dilemma_recordException')}</Text>
             <Text style={styles.inputHint}>
-              未来的每一次专注，你都必须允许此行为
+              {t('dilemma_inputHint')}
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="例如：中途拿快递"
+              placeholder={t('dilemma_placeholder')}
               placeholderTextColor={colors.textMuted}
               value={exceptionText}
               onChangeText={setExceptionText}
@@ -64,10 +68,10 @@ export function DilemmaModal() {
             />
             <View style={styles.inputActions}>
               <Pressable onPress={handleCompromiseCancel} style={styles.cancelBtn}>
-                <Text style={styles.cancelText}>取消</Text>
+                <Text style={styles.cancelText}>{t('common_cancel')}</Text>
               </Pressable>
               <HeavyButton
-                title="写入下必为例规则"
+                title={t('dilemma_writeRule')}
                 onPress={handleCompromiseSubmit}
                 variant="secondary"
                 style={styles.submitBtn}
@@ -81,26 +85,26 @@ export function DilemmaModal() {
 
   return (
     <Modal visible animationType="fade">
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
         <View style={styles.content}>
-          <Text style={styles.title}>判例结算</Text>
-          <Text style={styles.subtitle}>下必为例</Text>
+          <Text style={styles.title}>{t('dilemma_title')}</Text>
+          <Text style={styles.subtitle}>{t('dilemma_subtitle')}</Text>
 
           <View style={styles.options}>
             <HeavyButton
-              title="承认失败，粉碎当前契约链"
+              title={t('dilemma_admitFailure')}
               onPress={handleDestruction}
               variant="destruction"
               style={styles.optionButton}
             />
             <HeavyButton
-              title="允许本次违规，下必为例"
+              title={t('dilemma_allowException')}
               onPress={handleCompromisePress}
               variant="secondary"
               style={styles.optionButton}
             />
             <Pressable onPress={returnToFocus} style={styles.backBtn}>
-              <Text style={styles.backText}>← 返回</Text>
+              <Text style={styles.backText}>{t('common_back')}</Text>
             </Pressable>
           </View>
         </View>

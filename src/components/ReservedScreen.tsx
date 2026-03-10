@@ -6,12 +6,16 @@ import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
 import { useReservedCountdown, formatMsToTime } from '../hooks/useTimer';
 import { colors, typography, spacing } from '../design/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLocale } from '../i18n/LocaleContext';
 
 const LAST_PHASE_MS = 20 * 1000;
 
 export function ReservedScreen() {
   const { chains, activeChainId, reservedAt, enterFocus, timeoutReserved } =
     usePacteStore();
+  const { colors: themeColors } = useTheme();
+  const { t } = useLocale();
 
   const chain = chains.find((c) => c.id === activeChainId);
   const durationMs = chain?.reservationDurationMs ?? 15 * 60 * 1000;
@@ -27,32 +31,43 @@ export function ReservedScreen() {
   const last20SecondsCount = Math.ceil(remainingMs / 1000);
 
   const reservationMinutes = Math.floor(durationMs / 60000);
-  const triggerRitual = chain?.triggerRitual || '开始';
-  const theme = chain?.theme || '专注';
+  const triggerRitual = chain?.triggerRitual || t('reserved_start');
+  const theme = chain?.theme || t('idle_defaultTheme');
 
-  const buttonLabel = chain?.triggerRitual || '开始';
+  const buttonLabel = chain?.triggerRitual || t('reserved_start');
 
   return (
     <SafeAreaView
-      style={[styles.container, isLast20Seconds && styles.containerRed]}
+      style={[
+        styles.container,
+        { backgroundColor: themeColors.background },
+        isLast20Seconds && { backgroundColor: themeColors.destruction },
+      ]}
       edges={['top', 'bottom']}
     >
       <View style={styles.content}>
         <Text
           style={[
             styles.label,
-            isLast20Seconds && styles.textRed,
+            { color: isLast20Seconds ? '#FFFFFF' : themeColors.accent },
           ]}
         >
-          预定缓冲
+          {t('reserved_buffer')}
         </Text>
         {isLast20Seconds ? (
-          <Text style={styles.bigCountdown}>{last20SecondsCount}</Text>
+          <Text
+            style={[
+              styles.bigCountdown,
+              { color: '#FFFFFF' },
+            ]}
+          >
+            {last20SecondsCount}
+          </Text>
         ) : (
           <Text
             style={[
               styles.timer,
-              isLast20Seconds && styles.textRed,
+              { color: themeColors.text },
             ]}
           >
             {formatMsToTime(remainingMs)}
@@ -61,10 +76,14 @@ export function ReservedScreen() {
         <Text
           style={[
             styles.hint,
-            isLast20Seconds && styles.textRed,
+            { color: isLast20Seconds ? '#FFFFFF' : themeColors.textMuted },
           ]}
         >
-          {reservationMinutes} 分钟内{triggerRitual}后进行{theme}
+          {t('reserved_hint', {
+            minutes: String(reservationMinutes),
+            ritual: triggerRitual,
+            theme,
+          })}
         </Text>
       </View>
       <View style={styles.footer}>
@@ -112,9 +131,6 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
     marginTop: spacing.lg,
-  },
-  textRed: {
-    color: colors.text,
   },
   footer: {
     padding: spacing.xl,

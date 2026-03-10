@@ -1,11 +1,15 @@
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider } from '../src/theme/ThemeContext';
+import { ThemeStatusBar } from '../src/theme/ThemeStatusBar';
+import { LocaleProvider } from '../src/i18n/LocaleContext';
 
 export default function RootLayout() {
   return (
-    <>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }} />
-    </>
+    <ThemeProvider>
+      <LocaleProvider>
+        <ThemeStatusBar />
+        <Stack screenOptions={{ headerShown: false }} />
+      </LocaleProvider>
+    </ThemeProvider>
   );
 }

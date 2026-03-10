@@ -31,6 +31,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
 import { colors, spacing, typography } from '../design/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLocale } from '../i18n/LocaleContext';
+import { SettingsPage } from './SettingsPage';
 import type { Chain } from '../types/chain';
 
 function DashedChainLine({ style }: { style?: object }) {
@@ -70,6 +73,7 @@ function ChainNodeList({
   chain: Chain;
   showPendingNode: boolean;
 }) {
+  const { t } = useLocale();
   const [expandedSet, setExpandedSet] = useState<Set<number>>(new Set());
   const focusDuration = chain.focusTargetMs ?? 0;
 
@@ -94,7 +98,7 @@ function ChainNodeList({
       showsVerticalScrollIndicator={false}
     >
       {chain.length === 0 && !showPendingNode ? (
-        <Text style={chainNodeStyles.empty}>暂无节点</Text>
+        <Text style={chainNodeStyles.empty}>{t('idle_noNodes')}</Text>
       ) : (
         <>
           {nodes.map((nodeIndex) => {
@@ -176,6 +180,7 @@ function ChainNodeRow({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useLocale();
   return (
     <Pressable onPress={onToggle} style={chainNodeStyles.row}>
       <View style={chainNodeStyles.chainVisual}>
@@ -203,7 +208,7 @@ function ChainNodeRow({
             </Text>
             {rules.length > 0 && (
               <>
-                <Text style={chainNodeStyles.detailLabel}>新增规则：</Text>
+                <Text style={chainNodeStyles.detailLabel}>{t('idle_newRule')}</Text>
                 {rules.map((r) => (
                   <Text key={r.ruleIndex} style={chainNodeStyles.detailItem}>
                     下必为例规则第{r.ruleIndex}条：{r.text}
@@ -213,7 +218,7 @@ function ChainNodeRow({
             )}
             {pauses !== undefined && pauses.length > 0 && (
               <>
-                <Text style={chainNodeStyles.detailLabel}>暂停：</Text>
+                <Text style={chainNodeStyles.detailLabel}>{t('idle_pause')}</Text>
                 {pauses.map((p, i) => {
                   const atMs = 'atElapsedMs' in p ? p.atElapsedMs : ((p as { atMinute?: number }).atMinute ?? 0) * 60_000;
                   return (
@@ -238,6 +243,7 @@ function PendingNodeDot({
   hasNodesAbove: boolean;
   useDashedLine?: boolean;
 }) {
+  const { t } = useLocale();
   const dotScale = useSharedValue(1);
 
   useEffect(() => {
@@ -272,7 +278,7 @@ function PendingNodeDot({
       </View>
       <View style={chainNodeStyles.pendingLabelColumn}>
         <View style={chainNodeStyles.pendingLabelSpacer} />
-        <Text style={chainNodeStyles.pendingLabel}>即将生成</Text>
+        <Text style={chainNodeStyles.pendingLabel}>{t('idle_pending')}</Text>
       </View>
     </View>
   );
@@ -415,6 +421,7 @@ const chainNodeStyles = StyleSheet.create({
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 type FlatListItem =
+  | { type: 'settings' }
   | { type: 'chain'; chain: Chain }
   | { type: 'add' }
   | { type: 'archived' };
@@ -426,6 +433,7 @@ function ChainDetailModal({
   chain: Chain;
   onClose: () => void;
 }) {
+  const { t } = useLocale();
   const reservationMinutes = Math.round(chain.reservationDurationMs / 60_000);
   const focusDuration = chain.focusTargetMs
     ? formatDurationAsHhMmSs(chain.focusTargetMs)
@@ -437,26 +445,26 @@ function ChainDetailModal({
       <Pressable style={modalStyles.overlay} onPress={onClose}>
         <Pressable style={modalStyles.content} onPress={(e) => e.stopPropagation()}>
           <View style={modalStyles.header}>
-            <Text style={modalStyles.title}>{chain.theme || '专注'}</Text>
+            <Text style={modalStyles.title}>{chain.theme || t('idle_defaultTheme')}</Text>
             <Pressable onPress={onClose} hitSlop={16}>
-              <Text style={modalStyles.closeText}>关闭</Text>
+              <Text style={modalStyles.closeText}>{t('chain_close')}</Text>
             </Pressable>
           </View>
           <ScrollView style={modalStyles.body} showsVerticalScrollIndicator={false}>
             <Text style={modalStyles.detailItem}>
-              预定时长：{reservationMinutes} 分钟
+              {t('chain_reservationMinutes', { minutes: String(reservationMinutes) })}
             </Text>
             <Text style={modalStyles.detailItem}>
-              契约专注时长：{focusDuration}
+              {t('chain_focusDuration', { duration: focusDuration })}
             </Text>
-            <Text style={modalStyles.detailLabel}>下必为例规则</Text>
+            <Text style={modalStyles.detailLabel}>{t('chain_rules')}</Text>
             {rules.length === 0 ? (
-              <Text style={modalStyles.emptyRules}>暂无规则</Text>
+              <Text style={modalStyles.emptyRules}>{t('chain_noRules')}</Text>
             ) : (
               rules.map((r, i) => (
                 <View key={i} style={modalStyles.ruleItem}>
                   <Text style={modalStyles.ruleIndex}>
-                    {r.nodeIndex >= 0 ? `节点 #${r.nodeIndex + 1}` : '预设'}
+                    {r.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(r.nodeIndex + 1) }) : t('chain_preset')}
                   </Text>
                   <Text style={modalStyles.ruleText}>{r.text}</Text>
                 </View>
@@ -759,7 +767,8 @@ function ChainCard({
   onShowDetail?: () => void;
   cornerRadius?: number;
 }) {
-  const themeLabel = chain.theme || '专注';
+  const { t } = useLocale();
+  const themeLabel = chain.theme || t('idle_defaultTheme');
   const handlePress = () => {
     if (isConfigured && onShowDetail) {
       onShowDetail();
@@ -787,7 +796,7 @@ function ChainCard({
         />
       </View>
       <Text style={styles.chainRules}>
-        下必为例规则：{chain.precedentRules.length}条
+        {t('idle_chainRules', { count: String(chain.precedentRules.length) })}
       </Text>
     </Pressable>
   );
@@ -997,9 +1006,11 @@ const archivedStyles = StyleSheet.create({
 function AddChainCard({
   onPress,
   onHaptic,
+  addChainLabel,
 }: {
   onPress: () => void;
   onHaptic: () => void;
+  addChainLabel: string;
 }) {
   return (
     <Pressable
@@ -1010,7 +1021,7 @@ function AddChainCard({
       style={styles.addCard}
     >
       <Text style={styles.addText}>+</Text>
-      <Text style={styles.addHint}>添加契约链</Text>
+      <Text style={styles.addHint}>{addChainLabel}</Text>
     </Pressable>
   );
 }
@@ -1033,6 +1044,8 @@ export function IdleScreen({
     pinArchivedChain,
     clearIdleAnimation,
   } = usePacteStore();
+  const { colors: themeColors } = useTheme();
+  const { t } = useLocale();
 
   const [viewedIndex, setViewedIndex] = useState<number>(0);
   const [chainDetailModalChain, setChainDetailModalChain] = useState<Chain | null>(null);
@@ -1040,6 +1053,7 @@ export function IdleScreen({
   const activeChain = chains.find((c) => c.id === activeChainId);
 
   const flatListData: FlatListItem[] = [
+    { type: 'settings' as const },
     ...chains.map((c) => ({ type: 'chain' as const, chain: c })),
     { type: 'add' as const },
     { type: 'archived' as const },
@@ -1049,6 +1063,11 @@ export function IdleScreen({
   const lastHapticIndex = useRef<number | null>(null);
   const hasInitialScroll = useRef(false);
   const pendingScrollToNewChain = useRef(false);
+
+  const SETTINGS_INDEX = 0;
+  const firstChainIndex = 1;
+  const addPageIndex = 1 + chains.length;
+  const archivedPageIndex = 2 + chains.length;
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -1064,9 +1083,9 @@ export function IdleScreen({
       const offset = e.nativeEvent.contentOffset.x;
       const index = Math.round(offset / SCREEN_WIDTH);
       setViewedIndex(index);
-      if (index < chains.length) {
+      if (index >= firstChainIndex && index < firstChainIndex + chains.length) {
         lastHapticIndex.current = index;
-        const targetChain = chains[index];
+        const targetChain = chains[index - firstChainIndex];
         setActiveChain(targetChain.id);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
@@ -1087,17 +1106,31 @@ export function IdleScreen({
 
   useEffect(() => {
     if (activeChainId && chains.length > 0) {
-      const index = chains.findIndex((c) => c.id === activeChainId);
-      if (index >= 0) {
-        lastHapticIndex.current = index;
+      const chainIdx = chains.findIndex((c) => c.id === activeChainId);
+      if (chainIdx >= 0) {
+        lastHapticIndex.current = firstChainIndex + chainIdx;
       }
     }
   }, [activeChainId, chains]);
 
   useEffect(() => {
-    if (!activeChainId || chains.length === 0) return;
-    const idx = chains.findIndex((c) => c.id === activeChainId);
-    if (idx < 0) return;
+    if (chains.length === 0) {
+      if (!hasInitialScroll.current) {
+        hasInitialScroll.current = true;
+        setViewedIndex(addPageIndex);
+        requestAnimationFrame(() => {
+          flatListRef.current?.scrollToIndex({
+            index: addPageIndex,
+            animated: false,
+          });
+        });
+      }
+      return;
+    }
+    if (!activeChainId) return;
+    const chainIdx = chains.findIndex((c) => c.id === activeChainId);
+    if (chainIdx < 0) return;
+    const idx = firstChainIndex + chainIdx;
     if (pendingScrollToNewChain.current) {
       pendingScrollToNewChain.current = false;
       setViewedIndex(idx);
@@ -1113,12 +1146,13 @@ export function IdleScreen({
         flatListRef.current?.scrollToIndex({ index: idx, animated: false });
       });
     }
-  }, [activeChainId, chains]);
+  }, [activeChainId, chains, addPageIndex]);
 
   const handleChainSelect = useCallback(
     (chain: Chain) => {
-      const index = chains.findIndex((c) => c.id === chain.id);
-      if (index >= 0) {
+      const chainIdx = chains.findIndex((c) => c.id === chain.id);
+      if (chainIdx >= 0) {
+        const index = firstChainIndex + chainIdx;
         flatListRef.current?.scrollToIndex({ index, animated: true });
         setActiveChain(chain.id);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1169,7 +1203,7 @@ export function IdleScreen({
           actions={
             <View style={styles.pageActions}>
               <HeavyButton
-                title={itemCanReserve ? '预定契约' : '配置契约链'}
+                title={itemCanReserve ? t('idle_reserve') : t('idle_configure')}
                 onPress={() => {
                   if (itemCanReserve) {
                     setActiveChain(item.id);
@@ -1201,6 +1235,7 @@ export function IdleScreen({
           onHaptic={() =>
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
           }
+          addChainLabel={t('idle_addChain')}
         />
       </View>
       <View style={styles.pageContent}>
@@ -1210,7 +1245,13 @@ export function IdleScreen({
     </View>
   );
 
-  const isArchivedPage = viewedIndex === flatListData.length - 1;
+  const isArchivedPage = viewedIndex === archivedPageIndex;
+
+  const renderSettingsPage = () => (
+    <View style={styles.pageWrapper}>
+      <SettingsPage />
+    </View>
+  );
 
   const renderArchivedPage = () => (
     <View style={styles.pageWrapper}>
@@ -1218,7 +1259,7 @@ export function IdleScreen({
         <Pressable
           onPress={() => {
             flatListRef.current?.scrollToIndex({
-              index: flatListData.length - 2,
+              index: addPageIndex,
               animated: true,
             });
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1226,13 +1267,13 @@ export function IdleScreen({
           style={styles.archivedBackButton}
           hitSlop={16}
         >
-          <Text style={styles.archivedBackText}>← 返回</Text>
+          <Text style={styles.archivedBackText}>{t('common_back')}</Text>
         </Pressable>
-        <Text style={styles.archivedTitle}>已归档</Text>
+        <Text style={[styles.archivedTitle, { color: themeColors.text }]}>{t('idle_archived')}</Text>
       </View>
       <View style={styles.archivedContent}>
         {archivedChains.length === 0 ? (
-          <Text style={styles.archivedEmpty}>暂无归档</Text>
+          <Text style={styles.archivedEmpty}>{t('idle_archivedEmpty')}</Text>
         ) : (
           <FlatList
             data={archivedChains}
@@ -1261,6 +1302,9 @@ export function IdleScreen({
   );
 
   const renderItem = ({ item, index }: { item: FlatListItem; index: number }) => {
+    if (item.type === 'settings') {
+      return renderSettingsPage();
+    }
     if (item.type === 'chain') {
       return renderChainPage({ item: item.chain, index });
     }
@@ -1271,7 +1315,7 @@ export function IdleScreen({
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
       {chainDetailModalChain && (
         <ChainDetailModal
           chain={chainDetailModalChain}
@@ -1288,16 +1332,16 @@ export function IdleScreen({
               style={modalStyles.content}
               onPress={(e) => e.stopPropagation()}
             >
-              <Text style={modalStyles.title}>永久删除？</Text>
+              <Text style={modalStyles.title}>{t('idle_permanentDelete')}</Text>
               <Text style={modalStyles.detailItem}>
-                此操作不可撤销
+                {t('idle_irreversible')}
               </Text>
               <View style={styles.deleteModalActions}>
                 <Pressable
                   style={styles.deleteModalCancel}
                   onPress={() => setDeleteConfirmChain(null)}
                 >
-                  <Text style={styles.deleteModalCancelText}>取消</Text>
+                  <Text style={styles.deleteModalCancelText}>{t('common_cancel')}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.deleteModalConfirm}
@@ -1307,7 +1351,7 @@ export function IdleScreen({
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                   }}
                 >
-                  <Text style={styles.deleteModalConfirmText}>删除</Text>
+                  <Text style={styles.deleteModalConfirmText}>{t('common_delete')}</Text>
                 </Pressable>
               </View>
             </Pressable>
@@ -1319,7 +1363,11 @@ export function IdleScreen({
         data={flatListData}
         renderItem={renderItem}
         keyExtractor={(item) =>
-          item.type === 'chain' ? item.chain.id : item.type
+          item.type === 'chain'
+            ? item.chain.id
+            : item.type === 'settings'
+              ? 'settings'
+              : item.type
         }
         horizontal
         pagingEnabled

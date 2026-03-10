@@ -10,6 +10,8 @@ import {
   formatMsToTime,
 } from '../hooks/useTimer';
 import { colors, typography, spacing } from '../design/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLocale } from '../i18n/LocaleContext';
 import { PauseModal } from './PauseModal';
 
 export function FocusedScreen() {
@@ -24,6 +26,8 @@ export function FocusedScreen() {
     triggerPause,
     resumeFromPause,
   } = usePacteStore();
+  const { colors: themeColors } = useTheme();
+  const { t } = useLocale();
 
   const chain = chains.find((c) => c.id === activeChainId);
   const targetMs = chain?.focusTargetMs ?? 60 * 60 * 1000;
@@ -59,10 +63,13 @@ export function FocusedScreen() {
 
   if (isPaused) {
     const reasonText = pauseReason
-      ? `已暂停\n引用下必为例规则第${pauseReason.ruleIndex}条：${pauseReason.text}`
-      : '已暂停';
+      ? t('focus_pausedRule', {
+          ruleIndex: String(pauseReason.ruleIndex),
+          text: pauseReason.text,
+        })
+      : t('focus_paused');
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
         <View style={styles.content}>
           <Text style={styles.pauseReason} numberOfLines={4}>
             {reasonText}
@@ -75,7 +82,7 @@ export function FocusedScreen() {
         </View>
         <View style={styles.actions}>
           <HeavyButton
-            title="← 返回继续"
+            title={t('focus_backContinue')}
             onPress={resumeFromPause}
             variant="primary"
           />
@@ -87,12 +94,16 @@ export function FocusedScreen() {
   return (
     <>
       <SafeAreaView
-        style={[styles.container, styles.focusContainer]}
+        style={[
+          styles.container,
+          styles.focusContainer,
+          { backgroundColor: themeColors.focusBackground },
+        ]}
         edges={['top']}
       >
         <View style={styles.content}>
           <Text style={styles.label}>
-            {chain?.theme || '专注'}中
+            {chain?.theme || t('idle_defaultTheme')}{t('focus_themeSuffix')}
           </Text>
           {targetReached ? (
             <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
@@ -100,14 +111,14 @@ export function FocusedScreen() {
             <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
           )}
           {targetReached && (
-            <Text style={styles.extraHint}>已达目标 · 额外专注时间</Text>
+            <Text style={styles.extraHint}>{t('focus_extraHint')}</Text>
           )}
         </View>
 
         <View style={styles.actions}>
           {targetReached && (
             <HeavyButton
-              title="完成结算"
+              title={t('focus_complete')}
               onPress={handleComplete}
               variant="primary"
               style={styles.completeButton}
@@ -122,7 +133,7 @@ export function FocusedScreen() {
                   pressed && styles.exitButtonPressed,
                 ]}
               >
-                <Text style={styles.exitText}>暂停</Text>
+                <Text style={styles.exitText}>{t('focus_pause')}</Text>
               </Pressable>
               <Pressable
                 onPress={triggerDilemma}
@@ -131,7 +142,7 @@ export function FocusedScreen() {
                   pressed && styles.exitButtonPressed,
                 ]}
               >
-                <Text style={styles.exitText}>退出</Text>
+                <Text style={styles.exitText}>{t('focus_exit')}</Text>
               </Pressable>
             </>
           ) : (
@@ -142,7 +153,7 @@ export function FocusedScreen() {
                 pressed && styles.exitButtonPressed,
               ]}
             >
-              <Text style={styles.exitText}>退出</Text>
+              <Text style={styles.exitText}>{t('focus_exit')}</Text>
             </Pressable>
           )}
         </View>

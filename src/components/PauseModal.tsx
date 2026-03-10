@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PrecedentRule } from '../types/chain';
 import { colors, typography, spacing } from '../design/theme';
+import { useTheme } from '../theme/ThemeContext';
+import { useLocale } from '../i18n/LocaleContext';
 
 interface PauseModalProps {
   precedentRules: PrecedentRule[];
@@ -22,12 +24,14 @@ export function PauseModal({
   onSelect,
   onBack,
 }: PauseModalProps) {
+  const { colors: themeColors } = useTheme();
+  const { t } = useLocale();
   return (
     <Modal visible animationType="fade">
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Text style={styles.title}>选择暂停原因</Text>
-          <Text style={styles.subtitle}>下必为例规则</Text>
+          <Text style={styles.title}>{t('pause_title')}</Text>
+          <Text style={styles.subtitle}>{t('pause_subtitle')}</Text>
         </View>
         <FlatList
           data={precedentRules}
@@ -47,7 +51,7 @@ export function PauseModal({
         />
         <View style={styles.footer}>
           <Pressable onPress={onBack} style={styles.backBtn}>
-            <Text style={styles.backText}>← 返回</Text>
+            <Text style={styles.backText}>{t('common_back')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

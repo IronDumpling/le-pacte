@@ -7,7 +7,12 @@ const KEYS = {
   ACTIVE_CHAIN_ID: '@lepacte/active_chain_id',
   RESERVED_AT: '@lepacte/reserved_at',
   FOCUSED_STARTED_AT: '@lepacte/focused_started_at',
+  COLOR_SCHEME: '@lepacte/color_scheme',
+  LOCALE: '@lepacte/locale',
 } as const;
+
+export type ColorScheme = 'light' | 'dark' | 'auto';
+export type Locale = 'zh' | 'en' | 'fr' | 'ja';
 
 export const storage = {
   async getChains(): Promise<Chain[]> {
@@ -75,5 +80,25 @@ export const storage = {
     } else {
       await AsyncStorage.setItem(KEYS.FOCUSED_STARTED_AT, timestamp.toString());
     }
+  },
+
+  async getColorScheme(): Promise<ColorScheme | null> {
+    const value = await AsyncStorage.getItem(KEYS.COLOR_SCHEME);
+    if (value === 'light' || value === 'dark' || value === 'auto') return value;
+    return null;
+  },
+
+  async setColorScheme(scheme: ColorScheme): Promise<void> {
+    await AsyncStorage.setItem(KEYS.COLOR_SCHEME, scheme);
+  },
+
+  async getLocale(): Promise<Locale | null> {
+    const value = await AsyncStorage.getItem(KEYS.LOCALE);
+    if (value === 'zh' || value === 'en' || value === 'fr' || value === 'ja') return value;
+    return null;
+  },
+
+  async setLocale(locale: Locale): Promise<void> {
+    await AsyncStorage.setItem(KEYS.LOCALE, locale);
   },
 };
