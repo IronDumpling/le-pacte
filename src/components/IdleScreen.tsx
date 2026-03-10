@@ -350,6 +350,7 @@ const chainNodeStyles = StyleSheet.create({
   },
   expandedContent: {
     marginTop: spacing.md,
+    marginBottom: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.backgroundSecondary,
@@ -611,7 +612,7 @@ function ChainCountBadge({
   );
 }
 
-const ARCHIVE_REVEAL_HEIGHT = 60;
+const ARCHIVE_REVEAL_HEIGHT = 80;
 const COLLAPSE_DURATION = 300;
 const MINIMIZE_DURATION = 350;
 
@@ -620,11 +621,15 @@ function SwipeUpPageWrapper({
   body,
   actions,
   onArchive,
+  pageIndex,
+  viewedIndex,
 }: {
   header: React.ReactNode;
   body: React.ReactNode;
   actions: React.ReactNode;
   onArchive: () => void;
+  pageIndex: number;
+  viewedIndex: number;
 }) {
   const translateY = useSharedValue(0);
   const bodyTranslateY = useSharedValue(0);
@@ -687,10 +692,7 @@ function SwipeUpPageWrapper({
       [0, -ARCHIVE_REVEAL_HEIGHT],
       [0, 1]
     );
-    return {
-      transform: [{ scale: progress }],
-      opacity: progress,
-    };
+    return { opacity: progress };
   });
 
   const animatedBodyStyle = useAnimatedStyle(() => ({
@@ -704,19 +706,23 @@ function SwipeUpPageWrapper({
     ],
   }));
 
+  useEffect(() => {
+    if (pageIndex === viewedIndex) {
+      translateY.value = withTiming(0, { duration: 200 });
+    }
+  }, [viewedIndex, pageIndex]);
+
   return (
     <View style={styles.swipeUpPageContainer}>
-      <View style={styles.archiveButtonSlot}>
-        <Animated.View style={[styles.archiveButtonWrap, animatedButtonStyle]}>
-          <Pressable
-            onPress={handleArchivePress}
-            style={styles.archiveButton}
-            hitSlop={8}
-          >
-            <MaterialIcons name="archive" size={28} color={colors.text} />
-          </Pressable>
-        </Animated.View>
-      </View>
+      <Animated.View style={[styles.archiveButtonSlot, animatedButtonStyle]}>
+        <Pressable
+          onPress={handleArchivePress}
+          style={styles.archiveIconTouchArea}
+          hitSlop={16}
+        >
+          <MaterialIcons name="archive" size={28} color={colors.text} />
+        </Pressable>
+      </Animated.View>
       <Animated.View
         style={[styles.swipeUpPageContent, animatedContentStyle]}
         {...panResponder.panHandlers}
@@ -803,9 +809,16 @@ function ArchivedChainRow({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         const { dx } = gestureState;
         return Math.abs(dx) > 15;
+      },
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        const { dx, dy } = gestureState;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+        return absDx > 8 && absDx > absDy;
       },
       onPanResponderGrant: () => {
         prevGesture.current = translateX.value;
@@ -1053,13 +1066,15 @@ export function IdleScreen({
     [chains, setActiveChain]
   );
 
-  const renderChainPage = ({ item }: { item: Chain }) => {
+  const renderChainPage = ({ item, index }: { item: Chain; index: number }) => {
     const isConfigured =
       item.theme !== null && item.focusTargetMs !== null;
     const itemCanReserve = isConfigured;
     return (
       <View style={styles.pageWrapper}>
         <SwipeUpPageWrapper
+          pageIndex={index}
+          viewedIndex={viewedIndex}
           onArchive={() => archiveChain(item.id)}
           header={
             <View style={styles.pageHeader}>
@@ -1171,7 +1186,7 @@ export function IdleScreen({
 
   const renderItem = ({ item, index }: { item: FlatListItem; index: number }) => {
     if (item.type === 'chain') {
-      return renderChainPage({ item: item.chain });
+      return renderChainPage({ item: item.chain, index });
     }
     if (item.type === 'add') {
       return renderAddPage();
@@ -1382,20 +1397,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: ARCHIVE_REVEAL_HEIGHT,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingBottom: spacing.lg,
-  },
-  archiveButtonWrap: {
+    backgroundColor: '#2E4A6E',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  archiveButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.accent,
+  archiveIconTouchArea: {
+    padding: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
