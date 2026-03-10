@@ -1,24 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Chain } from '../types/chain';
 
 const KEYS = {
-  CHAIN_COUNT: '@lepacte/chain_count',
-  PRECEDENT_LOG: '@lepacte/precedent_log',
+  CHAINS: '@lepacte/chains',
+  ACTIVE_CHAIN_ID: '@lepacte/active_chain_id',
   RESERVED_AT: '@lepacte/reserved_at',
   FOCUSED_STARTED_AT: '@lepacte/focused_started_at',
 } as const;
 
 export const storage = {
-  async getChainCount(): Promise<number> {
-    const value = await AsyncStorage.getItem(KEYS.CHAIN_COUNT);
-    return value !== null ? parseInt(value, 10) : 0;
-  },
-
-  async setChainCount(count: number): Promise<void> {
-    await AsyncStorage.setItem(KEYS.CHAIN_COUNT, count.toString());
-  },
-
-  async getPrecedentLog(): Promise<string[]> {
-    const value = await AsyncStorage.getItem(KEYS.PRECEDENT_LOG);
+  async getChains(): Promise<Chain[]> {
+    const value = await AsyncStorage.getItem(KEYS.CHAINS);
     if (!value) return [];
     try {
       return JSON.parse(value);
@@ -27,8 +19,21 @@ export const storage = {
     }
   },
 
-  async setPrecedentLog(log: string[]): Promise<void> {
-    await AsyncStorage.setItem(KEYS.PRECEDENT_LOG, JSON.stringify(log));
+  async setChains(chains: Chain[]): Promise<void> {
+    await AsyncStorage.setItem(KEYS.CHAINS, JSON.stringify(chains));
+  },
+
+  async getActiveChainId(): Promise<string | null> {
+    const value = await AsyncStorage.getItem(KEYS.ACTIVE_CHAIN_ID);
+    return value || null;
+  },
+
+  async setActiveChainId(id: string | null): Promise<void> {
+    if (id === null) {
+      await AsyncStorage.removeItem(KEYS.ACTIVE_CHAIN_ID);
+    } else {
+      await AsyncStorage.setItem(KEYS.ACTIVE_CHAIN_ID, id);
+    }
   },
 
   async getReservedAt(): Promise<number | null> {

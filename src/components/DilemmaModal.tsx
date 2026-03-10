@@ -16,7 +16,7 @@ import { HeavyButton } from '../design/components';
 import { colors, typography, spacing } from '../design/theme';
 
 export function DilemmaModal() {
-  const { chooseDestruction, chooseCompromise } = usePacteStore();
+  const { chooseDestruction, chooseCompromise, returnToFocus } = usePacteStore();
   const [exceptionText, setExceptionText] = useState('');
   const [showInput, setShowInput] = useState(false);
 
@@ -67,7 +67,7 @@ export function DilemmaModal() {
                 <Text style={styles.cancelText}>取消</Text>
               </Pressable>
               <HeavyButton
-                title="写入宪法"
+                title="写入下必为例规则"
                 onPress={handleCompromiseSubmit}
                 variant="secondary"
                 style={styles.submitBtn}
@@ -94,11 +94,14 @@ export function DilemmaModal() {
               style={styles.optionButton}
             />
             <HeavyButton
-              title="允许本次违规，并永久写入【宪法】"
+              title="允许本次违规，下必为例"
               onPress={handleCompromisePress}
               variant="secondary"
               style={styles.optionButton}
             />
+            <Pressable onPress={returnToFocus} style={styles.backBtn}>
+              <Text style={styles.backText}>← 返回</Text>
+            </Pressable>
           </View>
         </View>
       </SafeAreaView>
@@ -181,5 +184,14 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     minWidth: 140,
+  },
+  backBtn: {
+    marginTop: spacing.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  backText: {
+    ...typography.body,
+    color: colors.accent,
   },
 });

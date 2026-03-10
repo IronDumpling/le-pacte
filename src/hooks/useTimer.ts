@@ -1,22 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import { RESERVED_DURATION_MS } from '../design/theme';
+import { useState, useEffect } from 'react';
 
 /**
- * Countdown timer for RESERVED state (15 min)
+ * Countdown timer for RESERVED state
  * Returns remaining ms, updates every second
  */
-export function useReservedCountdown(reservedAt: number | null, onTimeout: () => void) {
-  const [remainingMs, setRemainingMs] = useState<number>(RESERVED_DURATION_MS);
+export function useReservedCountdown(
+  reservedAt: number | null,
+  durationMs: number,
+  onTimeout: () => void
+) {
+  const [remainingMs, setRemainingMs] = useState(durationMs);
 
   useEffect(() => {
     if (reservedAt === null) {
-      setRemainingMs(RESERVED_DURATION_MS);
+      setRemainingMs(durationMs);
       return;
     }
 
     const update = () => {
       const elapsed = Date.now() - reservedAt;
-      const remaining = Math.max(0, RESERVED_DURATION_MS - elapsed);
+      const remaining = Math.max(0, durationMs - elapsed);
       setRemainingMs(remaining);
 
       if (remaining <= 0) {
@@ -25,9 +28,9 @@ export function useReservedCountdown(reservedAt: number | null, onTimeout: () =>
     };
 
     update();
-    const interval = setInterval(update, 1000);
+    const interval = setInterval(update, 100);
     return () => clearInterval(interval);
-  }, [reservedAt, onTimeout]);
+  }, [reservedAt, durationMs, onTimeout]);
 
   return remainingMs;
 }
@@ -55,6 +58,36 @@ export function useFocusedElapsed(focusedStartedAt: number | null) {
   }, [focusedStartedAt]);
 
   return elapsedMs;
+}
+
+/**
+ * Target countdown for FOCUSED state
+ * Returns remaining ms until target, 0 when target reached
+ */
+export function useFocusCountdown(
+  focusedStartedAt: number | null,
+  targetMs: number
+) {
+  const [remainingMs, setRemainingMs] = useState(targetMs);
+
+  useEffect(() => {
+    if (focusedStartedAt === null) {
+      setRemainingMs(targetMs);
+      return;
+    }
+
+    const update = () => {
+      const elapsed = Date.now() - focusedStartedAt;
+      const remaining = Math.max(0, targetMs - elapsed);
+      setRemainingMs(remaining);
+    };
+
+    update();
+    const interval = setInterval(update, 100);
+    return () => clearInterval(interval);
+  }, [focusedStartedAt, targetMs]);
+
+  return remainingMs;
 }
 
 export function formatMsToTime(ms: number): string {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { storage } from '../storage/storage';
-import { RESERVED_DURATION_MS } from '../design/theme';
+import type { Chain } from '../types/chain';
+import { createDefaultChain } from '../types/chain';
 
 export type PacteStateType = 'IDLE' | 'RESERVED' | 'FOCUSED' | 'DILEMMA';
 
@@ -8,8 +9,8 @@ export type IdleAnimationType = 'success' | 'break' | null;
 
 interface PacteState {
   currentState: PacteStateType;
-  chainCount: number;
-  precedentLog: string[];
+  chains: Chain[];
+  activeChainId: string | null;
   reservedAt: number | null;
   focusedStartedAt: number | null;
   frozenElapsedMs: number | null;
@@ -18,23 +19,34 @@ interface PacteState {
 }
 
 interface PacteActions {
+  addChain: () => void;
+  setActiveChain: (id: string | null) => void;
+  updateChain: (id: string, partial: Partial<Chain>) => void;
+  addPrecedentRule: (chainId: string, text: string) => void;
   reserve: () => void;
   enterFocus: () => void;
   timeoutReserved: () => void;
   completeFocus: () => void;
   triggerDilemma: () => void;
+  triggerPause: () => void;
   chooseDestruction: () => void;
   chooseCompromise: (exceptionText: string) => void;
+  returnToFocus: () => void;
+  resumeFromPause: () => void;
   clearIdleAnimation: () => void;
   hydrate: () => Promise<void>;
 }
 
 type PacteStore = PacteState & PacteActions;
 
+function persistChains(chains: Chain[]) {
+  storage.setChains(chains);
+}
+
 export const usePacteStore = create<PacteStore>((set, get) => ({
   currentState: 'IDLE',
-  chainCount: 0,
-  precedentLog: [],
+  chains: [],
+  activeChainId: null,
   reservedAt: null,
   focusedStartedAt: null,
   frozenElapsedMs: null,
@@ -42,20 +54,70 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   _hydrated: false,
 
   hydrate: async () => {
-    const [chainCount, precedentLog] = await Promise.all([
-      storage.getChainCount(),
-      storage.getPrecedentLog(),
+    const [chains, storedActiveId] = await Promise.all([
+      storage.getChains(),
+      storage.getActiveChainId(),
     ]);
+    const finalChains = chains.length > 0 ? chains : [createDefaultChain()];
+    if (chains.length === 0) persistChains(finalChains);
+    const validActiveId =
+      storedActiveId && finalChains.some((c) => c.id === storedActiveId)
+        ? storedActiveId
+        : finalChains[0]?.id ?? null;
+    if (validActiveId && validActiveId !== storedActiveId) {
+      storage.setActiveChainId(validActiveId);
+    }
     set({
-      chainCount,
-      precedentLog,
+      chains: finalChains,
+      activeChainId: validActiveId,
       _hydrated: true,
     });
   },
 
+  addChain: () => {
+    const { chains } = get();
+    const newChain = createDefaultChain();
+    const next = [...chains, newChain];
+    set({ chains: next, activeChainId: newChain.id });
+    persistChains(next);
+    storage.setActiveChainId(newChain.id);
+  },
+
+  setActiveChain: (id: string | null) => {
+    set({ activeChainId: id });
+    storage.setActiveChainId(id);
+  },
+
+  updateChain: (id: string, partial: Partial<Chain>) => {
+    const { chains } = get();
+    const next = chains.map((c) => (c.id === id ? { ...c, ...partial } : c));
+    set({ chains: next });
+    persistChains(next);
+  },
+
+  addPrecedentRule: (chainId: string, text: string) => {
+    const { chains } = get();
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const next = chains.map((c) => {
+      if (c.id !== chainId) return c;
+      return {
+        ...c,
+        precedentRules: [
+          ...c.precedentRules,
+          { text: trimmed, nodeIndex: -1 },
+        ],
+      };
+    });
+    set({ chains: next });
+    persistChains(next);
+  },
+
   reserve: () => {
-    const { currentState } = get();
-    if (currentState !== 'IDLE') return;
+    const { currentState, chains, activeChainId } = get();
+    if (currentState !== 'IDLE' || !activeChainId) return;
+    const chain = chains.find((c) => c.id === activeChainId);
+    if (!chain || chain.focusTargetMs === null) return;
     const now = Date.now();
     set({
       currentState: 'RESERVED',
@@ -79,29 +141,38 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   },
 
   timeoutReserved: () => {
-    const { currentState } = get();
-    if (currentState !== 'RESERVED') return;
+    const { currentState, chains, activeChainId } = get();
+    if (currentState !== 'RESERVED' || !activeChainId) return;
+    const chain = chains.find((c) => c.id === activeChainId);
+    if (!chain) return;
+    const next = chains.map((c) =>
+      c.id === activeChainId ? { ...c, length: 0 } : c
+    );
     set({
       currentState: 'IDLE',
-      chainCount: 0,
+      chains: next,
       reservedAt: null,
       lastIdleAnimation: 'break',
     });
-    storage.setChainCount(0);
+    persistChains(next);
     storage.setReservedAt(null);
   },
 
   completeFocus: () => {
-    const { currentState, chainCount } = get();
-    if (currentState !== 'FOCUSED') return;
-    const newCount = chainCount + 1;
+    const { currentState, chains, activeChainId } = get();
+    if (currentState !== 'FOCUSED' || !activeChainId) return;
+    const chain = chains.find((c) => c.id === activeChainId);
+    if (!chain) return;
+    const next = chains.map((c) =>
+      c.id === activeChainId ? { ...c, length: c.length + 1 } : c
+    );
     set({
       currentState: 'IDLE',
-      chainCount: newCount,
+      chains: next,
       focusedStartedAt: null,
       lastIdleAnimation: 'success',
     });
-    storage.setChainCount(newCount);
+    persistChains(next);
     storage.setFocusedStartedAt(null);
   },
 
@@ -109,39 +180,82 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     const { currentState, focusedStartedAt } = get();
     if (currentState !== 'FOCUSED') return;
     const frozenElapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
-    set({
-      currentState: 'DILEMMA',
-      frozenElapsedMs,
-    });
+    set({ currentState: 'DILEMMA', frozenElapsedMs });
+  },
+
+  triggerPause: () => {
+    const { focusedStartedAt } = get();
+    const frozenElapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
+    set({ frozenElapsedMs });
   },
 
   chooseDestruction: () => {
-    const { currentState } = get();
-    if (currentState !== 'DILEMMA') return;
+    const { currentState, chains, activeChainId } = get();
+    if (currentState !== 'DILEMMA' || !activeChainId) return;
+    const next = chains.map((c) =>
+      c.id === activeChainId
+        ? { ...c, length: 0, precedentRules: [] }
+        : c
+    );
     set({
       currentState: 'IDLE',
-      chainCount: 0,
+      chains: next,
       frozenElapsedMs: null,
       lastIdleAnimation: 'break',
     });
-    storage.setChainCount(0);
+    persistChains(next);
   },
 
   chooseCompromise: (exceptionText: string) => {
-    const { currentState, precedentLog, frozenElapsedMs } = get();
-    if (currentState !== 'DILEMMA') return;
+    const { currentState, chains, activeChainId, frozenElapsedMs } = get();
+    if (currentState !== 'DILEMMA' || !activeChainId) return;
+    const chain = chains.find((c) => c.id === activeChainId);
+    if (!chain) return;
     const trimmed = exceptionText.trim();
-    const newLog = trimmed ? [...precedentLog, trimmed] : precedentLog;
+    const newRule = trimmed
+      ? { text: trimmed, nodeIndex: chain.length }
+      : null;
+    const next = chains.map((c) => {
+      if (c.id !== activeChainId) return c;
+      const rules = newRule ? [...c.precedentRules, newRule] : c.precedentRules;
+      return { ...c, precedentRules: rules };
+    });
     const now = Date.now();
-    const newFocusedStartedAt = frozenElapsedMs !== null ? now - frozenElapsedMs : now;
+    const newFocusedStartedAt =
+      frozenElapsedMs !== null ? now - frozenElapsedMs : now;
     set({
       currentState: 'FOCUSED',
-      precedentLog: newLog,
+      chains: next,
       frozenElapsedMs: null,
       focusedStartedAt: newFocusedStartedAt,
     });
-    storage.setPrecedentLog(newLog);
+    persistChains(next);
     storage.setFocusedStartedAt(newFocusedStartedAt);
+  },
+
+  returnToFocus: () => {
+    const { currentState, frozenElapsedMs } = get();
+    if (currentState !== 'DILEMMA') return;
+    const now = Date.now();
+    const newFocusedStartedAt =
+      frozenElapsedMs !== null ? now - frozenElapsedMs : now;
+    set({
+      currentState: 'FOCUSED',
+      frozenElapsedMs: null,
+      focusedStartedAt: newFocusedStartedAt,
+    });
+    storage.setFocusedStartedAt(newFocusedStartedAt);
+  },
+
+  resumeFromPause: () => {
+    const { frozenElapsedMs } = get();
+    if (frozenElapsedMs === null) return;
+    const now = Date.now();
+    set({
+      frozenElapsedMs: null,
+      focusedStartedAt: now - frozenElapsedMs,
+    });
+    storage.setFocusedStartedAt(now - frozenElapsedMs);
   },
 
   clearIdleAnimation: () => {

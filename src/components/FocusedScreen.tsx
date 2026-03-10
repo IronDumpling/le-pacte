@@ -4,48 +4,147 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
-import { useFocusedElapsed, formatMsToTime } from '../hooks/useTimer';
+import {
+  useFocusCountdown,
+  useFocusedElapsed,
+  formatMsToTime,
+} from '../hooks/useTimer';
 import { colors, typography, spacing } from '../design/theme';
-
-const LONG_PRESS_DURATION_MS = 800;
+import { PauseModal } from './PauseModal';
 
 export function FocusedScreen() {
-  const { focusedStartedAt, completeFocus, triggerDilemma } = usePacteStore();
-  const elapsedMs = useFocusedElapsed(focusedStartedAt);
-  const [longPressProgress, setLongPressProgress] = useState(0);
+  const {
+    chains,
+    activeChainId,
+    focusedStartedAt,
+    frozenElapsedMs,
+    completeFocus,
+    triggerDilemma,
+    triggerPause,
+    resumeFromPause,
+  } = usePacteStore();
 
-  const handleLongPressComplete = () => {
+  const chain = chains.find((c) => c.id === activeChainId);
+  const targetMs = chain?.focusTargetMs ?? 60 * 60 * 1000;
+  const hasPrecedents = (chain?.precedentRules.length ?? 0) > 0;
+
+  const remainingMs = useFocusCountdown(focusedStartedAt, targetMs);
+  const elapsedMs = useFocusedElapsed(focusedStartedAt);
+
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const targetReached = remainingMs <= 0;
+
+  const handleComplete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     completeFocus();
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.content}>
-        <Text style={styles.label}>专注中</Text>
-        <Text style={styles.timer}>{formatMsToTime(elapsedMs)}</Text>
-      </View>
+  const handlePauseBack = () => {
+    resumeFromPause();
+    setShowPauseModal(false);
+  };
 
-      <View style={styles.actions}>
-        <HeavyButton
-          title="完成结算 (长按 800ms)"
-          onLongPress={handleLongPressComplete}
-          onPress={() => {}}
-          delayLongPress={800}
-          variant="primary"
-          style={styles.completeButton}
+  const handlePauseSelect = () => {
+    triggerPause();
+    setShowPauseModal(false);
+  };
+
+  const isPaused = frozenElapsedMs !== null;
+  const displayRemaining = isPaused
+    ? Math.max(0, targetMs - frozenElapsedMs!)
+    : remainingMs;
+  const displayElapsed = isPaused ? frozenElapsedMs! : elapsedMs;
+  const pausedTargetReached = isPaused && (frozenElapsedMs ?? 0) >= targetMs;
+
+  if (isPaused) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.content}>
+          <Text style={styles.label}>已暂停</Text>
+          {pausedTargetReached ? (
+            <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
+          ) : (
+            <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
+          )}
+        </View>
+        <View style={styles.actions}>
+          <HeavyButton
+            title="← 返回继续"
+            onPress={resumeFromPause}
+            variant="primary"
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.content}>
+          <Text style={styles.label}>专注中</Text>
+          {targetReached ? (
+            <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
+          ) : (
+            <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
+          )}
+          {targetReached && (
+            <Text style={styles.extraHint}>已达目标 · 额外专注时间</Text>
+          )}
+        </View>
+
+        <View style={styles.actions}>
+          {targetReached && (
+            <HeavyButton
+              title="完成结算"
+              onPress={handleComplete}
+              variant="primary"
+              style={styles.completeButton}
+            />
+          )}
+          {hasPrecedents ? (
+            <>
+              <Pressable
+                onPress={() => setShowPauseModal(true)}
+                style={({ pressed }) => [
+                  styles.exitButton,
+                  pressed && styles.exitButtonPressed,
+                ]}
+              >
+                <Text style={styles.exitText}>暂停</Text>
+              </Pressable>
+              <Pressable
+                onPress={triggerDilemma}
+                style={({ pressed }) => [
+                  styles.exitButton,
+                  pressed && styles.exitButtonPressed,
+                ]}
+              >
+                <Text style={styles.exitText}>退出</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              onPress={triggerDilemma}
+              style={({ pressed }) => [
+                styles.exitButton,
+                pressed && styles.exitButtonPressed,
+              ]}
+            >
+              <Text style={styles.exitText}>退出</Text>
+            </Pressable>
+          )}
+        </View>
+      </SafeAreaView>
+
+      {showPauseModal && chain && (
+        <PauseModal
+          precedentRules={chain.precedentRules}
+          onSelect={handlePauseSelect}
+          onBack={handlePauseBack}
         />
-        <Pressable
-          onPress={triggerDilemma}
-          style={({ pressed }) => [
-            styles.exitButton,
-            pressed && styles.exitButtonPressed,
-          ]}
-        >
-          <Text style={styles.exitText}>暂停 / 退出</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+      )}
+    </>
   );
 }
 
@@ -70,6 +169,11 @@ const styles = StyleSheet.create({
     ...typography.chainNumber,
     color: colors.text,
     fontSize: 64,
+  },
+  extraHint: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.md,
   },
   actions: {
     padding: spacing.xl,
