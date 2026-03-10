@@ -35,7 +35,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     idle_chainRules: '下必为例规则：{count}条',
     idle_newRule: '新增规则：',
     idle_pause: '暂停：',
-    idle_pending: '即将生成',
+    idle_pending: '下次预定后生成',
     idle_permanentDelete: '永久删除？',
     idle_irreversible: '此操作不可撤销',
     idle_defaultTheme: '专注',
@@ -49,6 +49,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chain_focusDuration: '契约专注时长：{duration}',
     chain_nodeLabel: '节点 #{n}',
     chain_preset: '预设',
+    chain_badgeLabel: '契约链',
 
     dilemma_title: '判例结算',
     dilemma_subtitle: '下必为例',
@@ -145,6 +146,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chain_focusDuration: 'Focus duration: {duration}',
     chain_nodeLabel: 'Node #{n}',
     chain_preset: 'Preset',
+    chain_badgeLabel: 'CHAIN',
 
     dilemma_title: 'Case Settlement',
     dilemma_subtitle: 'Precedent',
@@ -241,6 +243,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chain_focusDuration: 'Durée de concentration : {duration}',
     chain_nodeLabel: 'Nœud #{n}',
     chain_preset: 'Prédéfini',
+    chain_badgeLabel: 'Chaîne',
 
     dilemma_title: 'Règlement de cas',
     dilemma_subtitle: 'Précédent',
@@ -337,6 +340,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chain_focusDuration: '集中時間：{duration}',
     chain_nodeLabel: 'ノード #{n}',
     chain_preset: 'プリセット',
+    chain_badgeLabel: 'チェーン',
 
     dilemma_title: '判例決済',
     dilemma_subtitle: '先例',

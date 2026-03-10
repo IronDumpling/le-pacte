@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,12 +17,13 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
+  withSpring,
   Easing,
   interpolate,
   Extrapolation,
   runOnJS,
+  Layout,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -434,6 +435,7 @@ function ChainDetailModal({
   onClose: () => void;
 }) {
   const { t } = useLocale();
+  const { colors: themeColors } = useTheme();
   const reservationMinutes = Math.round(chain.reservationDurationMs / 60_000);
   const focusDuration = chain.focusTargetMs
     ? formatDurationAsHhMmSs(chain.focusTargetMs)
@@ -443,30 +445,35 @@ function ChainDetailModal({
   return (
     <Modal visible transparent animationType="fade">
       <Pressable style={modalStyles.overlay} onPress={onClose}>
-        <Pressable style={modalStyles.content} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={[modalStyles.content, { backgroundColor: themeColors.backgroundSecondary }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={modalStyles.header}>
-            <Text style={modalStyles.title}>{chain.theme || t('idle_defaultTheme')}</Text>
+            <Text style={[modalStyles.title, { color: themeColors.text }]}>
+              {chain.theme || t('idle_defaultTheme')}
+            </Text>
             <Pressable onPress={onClose} hitSlop={16}>
-              <Text style={modalStyles.closeText}>{t('chain_close')}</Text>
+              <Text style={[modalStyles.closeText, { color: themeColors.accent }]}>{t('chain_close')}</Text>
             </Pressable>
           </View>
           <ScrollView style={modalStyles.body} showsVerticalScrollIndicator={false}>
-            <Text style={modalStyles.detailItem}>
+            <Text style={[modalStyles.detailItem, { color: themeColors.textMuted }]}>
               {t('chain_reservationMinutes', { minutes: String(reservationMinutes) })}
             </Text>
-            <Text style={modalStyles.detailItem}>
+            <Text style={[modalStyles.detailItem, { color: themeColors.textMuted }]}>
               {t('chain_focusDuration', { duration: focusDuration })}
             </Text>
-            <Text style={modalStyles.detailLabel}>{t('chain_rules')}</Text>
+            <Text style={[modalStyles.detailLabel, { color: themeColors.accent }]}>{t('chain_rules')}</Text>
             {rules.length === 0 ? (
-              <Text style={modalStyles.emptyRules}>{t('chain_noRules')}</Text>
+              <Text style={[modalStyles.emptyRules, { color: themeColors.textMuted }]}>{t('chain_noRules')}</Text>
             ) : (
               rules.map((r, i) => (
-                <View key={i} style={modalStyles.ruleItem}>
-                  <Text style={modalStyles.ruleIndex}>
+                <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>
+                  <Text style={[modalStyles.ruleIndex, { color: themeColors.accent }]}>
                     {r.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(r.nodeIndex + 1) }) : t('chain_preset')}
                   </Text>
-                  <Text style={modalStyles.ruleText}>{r.text}</Text>
+                  <Text style={[modalStyles.ruleText, { color: themeColors.text }]}>{r.text}</Text>
                 </View>
               ))
             )}
@@ -557,6 +564,7 @@ function ChainCountBadge({
   animateSuccess?: boolean;
   animateBreak?: boolean;
 }) {
+  const { t } = useLocale();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -615,13 +623,14 @@ function ChainCountBadge({
 
   return (
     <Animated.View style={[styles.chainCountBadge, animatedStyle]}>
-      <Text style={styles.chainCountLabel}>CHAIN</Text>
+      <Text style={styles.chainCountLabel}>{t('chain_badgeLabel')}</Text>
       <Text style={styles.chainCountNumber}>#{count}</Text>
     </Animated.View>
   );
 }
 
 const ARCHIVE_REVEAL_HEIGHT = 80;
+const ARCHIVE_SNAP_THRESHOLD = 10;
 const COLLAPSE_DURATION = 300;
 const MINIMIZE_DURATION = 350;
 
@@ -645,6 +654,7 @@ function SwipeUpPageWrapper({
   const headerTranslateX = useSharedValue(0);
   const headerScale = useSharedValue(1);
   const prevGesture = useRef(0);
+  const hasSnappedThisGesture = useRef(false);
   const isArchiving = useRef(false);
 
   const panResponder = useRef(
@@ -653,23 +663,39 @@ function SwipeUpPageWrapper({
       onMoveShouldSetPanResponder: (_, gestureState) => {
         if (isArchiving.current) return false;
         const { dy } = gestureState;
-        return Math.abs(dy) > 15;
+        return Math.abs(dy) > 8;
       },
       onPanResponderGrant: () => {
         prevGesture.current = translateY.value;
+        hasSnappedThisGesture.current = false;
       },
       onPanResponderMove: (_, gestureState) => {
         const { dy } = gestureState;
-        const next = Math.max(-ARCHIVE_REVEAL_HEIGHT, Math.min(0, prevGesture.current + dy));
-        translateY.value = next;
+        const next = prevGesture.current + dy;
+        if (hasSnappedThisGesture.current) {
+          if (prevGesture.current < 0 && next > -ARCHIVE_REVEAL_HEIGHT + ARCHIVE_SNAP_THRESHOLD) {
+            hasSnappedThisGesture.current = false;
+            translateY.value = withTiming(0, { duration: 150 });
+            prevGesture.current = 0;
+          }
+          return;
+        }
+        if (next < -ARCHIVE_SNAP_THRESHOLD) {
+          hasSnappedThisGesture.current = true;
+          translateY.value = withTiming(-ARCHIVE_REVEAL_HEIGHT, { duration: 150 });
+          prevGesture.current = -ARCHIVE_REVEAL_HEIGHT;
+        } else {
+          translateY.value = Math.max(0, next);
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
+        if (hasSnappedThisGesture.current) return;
         const { dy, vy } = gestureState;
-        const current = translateY.value;
-        if (current < -ARCHIVE_REVEAL_HEIGHT / 2 || vy < -0.5) {
-          translateY.value = withTiming(-ARCHIVE_REVEAL_HEIGHT, { duration: 200 });
+        const next = prevGesture.current + dy;
+        if (next < -ARCHIVE_SNAP_THRESHOLD || vy < -0.2) {
+          translateY.value = withTiming(-ARCHIVE_REVEAL_HEIGHT, { duration: 150 });
         } else {
-          translateY.value = withTiming(0, { duration: 200 });
+          translateY.value = withTiming(0, { duration: 150 });
         }
       },
     })
@@ -806,24 +832,28 @@ const ROW_SWIPE_BUTTON_WIDTH = 56;
 
 function ArchivedChainRow({
   chain,
+  isPinned,
   onShowDetail,
   onUnarchive,
   onDelete,
   onPin,
+  onUnpin,
 }: {
   chain: Chain;
+  isPinned: boolean;
   onShowDetail: () => void;
   onUnarchive: () => void;
   onDelete: () => void;
   onPin: () => void;
+  onUnpin: () => void;
 }) {
   const translateX = useSharedValue(0);
   const prevGesture = useRef(0);
   const hasSnappedThisGesture = useRef(false);
   const swipeLeftReveal = ROW_SWIPE_BUTTON_WIDTH * 2;
   const swipeRightReveal = ROW_SWIPE_BUTTON_WIDTH;
-  const SNAP_THRESHOLD = 20;
-  const CLOSE_THRESHOLD = 20;
+  const SNAP_THRESHOLD = 10;
+  const CLOSE_THRESHOLD = 10;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -914,15 +944,38 @@ function ArchivedChainRow({
     };
   });
 
+  const handlePinOrUnpin = () => {
+    if (isPinned) {
+      onUnpin();
+    } else {
+      onPin();
+    }
+    translateX.value = withTiming(0, { duration: 150 });
+  };
+
+  const handleUnarchive = () => {
+    translateX.value = withTiming(
+      -SCREEN_WIDTH,
+      { duration: 250, easing: Easing.out(Easing.cubic) },
+      (finished) => {
+        if (finished) runOnJS(onUnarchive)();
+      }
+    );
+  };
+
   return (
-    <View style={archivedStyles.rowWrapper}>
+    <Animated.View style={archivedStyles.rowWrapper} layout={Layout.springify()}>
       <View style={archivedStyles.rowActionsLeft}>
-        <Pressable style={archivedStyles.pinButton} onPress={onPin}>
-          <MaterialIcons name="push-pin" size={24} color={colors.text} />
+        <Pressable style={archivedStyles.pinButton} onPress={handlePinOrUnpin}>
+          <MaterialIcons
+            name={isPinned ? 'bookmark' : 'push-pin'}
+            size={24}
+            color={colors.text}
+          />
         </Pressable>
       </View>
       <View style={archivedStyles.rowActionsRight}>
-        <Pressable style={archivedStyles.unarchiveButton} onPress={onUnarchive}>
+        <Pressable style={archivedStyles.unarchiveButton} onPress={handleUnarchive}>
           <MaterialIcons name="unarchive" size={24} color={colors.text} />
         </Pressable>
         <Pressable style={archivedStyles.deleteButton} onPress={onDelete}>
@@ -942,7 +995,7 @@ function ArchivedChainRow({
           cornerRadius={0}
         />
       </Animated.View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -1034,6 +1087,7 @@ export function IdleScreen({
   const {
     chains,
     archivedChains,
+    pinnedArchivedChainIds,
     activeChainId,
     addChain,
     setActiveChain,
@@ -1042,6 +1096,7 @@ export function IdleScreen({
     unarchiveChain,
     deleteArchivedChain,
     pinArchivedChain,
+    unpinArchivedChain,
     clearIdleAnimation,
   } = usePacteStore();
   const { colors: themeColors } = useTheme();
@@ -1051,6 +1106,14 @@ export function IdleScreen({
   const [chainDetailModalChain, setChainDetailModalChain] = useState<Chain | null>(null);
   const [deleteConfirmChain, setDeleteConfirmChain] = useState<Chain | null>(null);
   const activeChain = chains.find((c) => c.id === activeChainId);
+
+  const displayArchivedChains = useMemo(() => {
+    const pinned = pinnedArchivedChainIds
+      .map((id) => archivedChains.find((c) => c.id === id))
+      .filter((c): c is Chain => c != null);
+    const unpinned = archivedChains.filter((c) => !pinnedArchivedChainIds.includes(c.id));
+    return [...pinned, ...unpinned];
+  }, [archivedChains, pinnedArchivedChainIds]);
 
   const flatListData: FlatListItem[] = [
     { type: 'settings' as const },
@@ -1272,15 +1335,16 @@ export function IdleScreen({
         <Text style={[styles.archivedTitle, { color: themeColors.text }]}>{t('idle_archived')}</Text>
       </View>
       <View style={styles.archivedContent}>
-        {archivedChains.length === 0 ? (
+        {displayArchivedChains.length === 0 ? (
           <Text style={styles.archivedEmpty}>{t('idle_archivedEmpty')}</Text>
         ) : (
           <FlatList
-            data={archivedChains}
+            data={displayArchivedChains}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <ArchivedChainRow
                 chain={item}
+                isPinned={pinnedArchivedChainIds.includes(item.id)}
                 onShowDetail={() => setChainDetailModalChain(item)}
                 onUnarchive={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1290,6 +1354,10 @@ export function IdleScreen({
                 onPin={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   pinArchivedChain(item.id);
+                }}
+                onUnpin={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  unpinArchivedChain(item.id);
                 }}
               />
             )}
@@ -1329,19 +1397,19 @@ export function IdleScreen({
             onPress={() => setDeleteConfirmChain(null)}
           >
             <Pressable
-              style={modalStyles.content}
+              style={[modalStyles.content, { backgroundColor: themeColors.backgroundSecondary }]}
               onPress={(e) => e.stopPropagation()}
             >
-              <Text style={modalStyles.title}>{t('idle_permanentDelete')}</Text>
-              <Text style={modalStyles.detailItem}>
+              <Text style={[modalStyles.title, { color: themeColors.text }]}>{t('idle_permanentDelete')}</Text>
+              <Text style={[modalStyles.detailItem, { color: themeColors.textMuted }]}>
                 {t('idle_irreversible')}
               </Text>
               <View style={styles.deleteModalActions}>
                 <Pressable
-                  style={styles.deleteModalCancel}
+                  style={[styles.deleteModalCancel, { backgroundColor: themeColors.backgroundSecondary }]}
                   onPress={() => setDeleteConfirmChain(null)}
                 >
-                  <Text style={styles.deleteModalCancelText}>{t('common_cancel')}</Text>
+                  <Text style={[styles.deleteModalCancelText, { color: themeColors.text }]}>{t('common_cancel')}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.deleteModalConfirm}
@@ -1351,7 +1419,7 @@ export function IdleScreen({
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                   }}
                 >
-                  <Text style={styles.deleteModalConfirmText}>{t('common_delete')}</Text>
+                  <Text style={[styles.deleteModalConfirmText, { color: themeColors.text }]}>{t('common_delete')}</Text>
                 </Pressable>
               </View>
             </Pressable>

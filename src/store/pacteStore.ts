@@ -23,6 +23,7 @@ interface PacteState {
   currentState: PacteStateType;
   chains: Chain[];
   archivedChains: Chain[];
+  pinnedArchivedChainIds: string[];
   activeChainId: string | null;
   reservedAt: number | null;
   focusedStartedAt: number | null;
@@ -39,6 +40,7 @@ interface PacteActions {
   unarchiveChain: (id: string) => void;
   deleteArchivedChain: (id: string) => void;
   pinArchivedChain: (id: string) => void;
+  unpinArchivedChain: (id: string) => void;
   setActiveChain: (id: string | null) => void;
   updateChain: (id: string, partial: Partial<Chain>) => void;
   addPrecedentRule: (chainId: string, text: string) => void;
@@ -70,6 +72,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   currentState: 'IDLE',
   chains: [],
   archivedChains: [],
+  pinnedArchivedChainIds: [],
   activeChainId: null,
   reservedAt: null,
   focusedStartedAt: null,
@@ -80,9 +83,10 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   _hydrated: false,
 
   hydrate: async () => {
-    const [chains, archivedChains, storedActiveId] = await Promise.all([
+    const [chains, archivedChains, pinnedArchivedChainIds, storedActiveId] = await Promise.all([
       storage.getChains(),
       storage.getArchivedChains(),
+      storage.getPinnedArchivedChainIds(),
       storage.getActiveChainId(),
     ]);
     let finalChains = chains.length > 0 ? chains : [createDefaultChain()];
@@ -128,6 +132,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     set({
       chains: finalChains,
       archivedChains: archivedChains ?? [],
+      pinnedArchivedChainIds: pinnedArchivedChainIds ?? [],
       activeChainId: validActiveId,
       _hydrated: true,
     });
@@ -169,30 +174,43 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   },
 
   unarchiveChain: (id: string) => {
-    const { chains, archivedChains } = get();
+    const { chains, archivedChains, pinnedArchivedChainIds } = get();
     const chain = archivedChains.find((c) => c.id === id);
     if (!chain) return;
     const nextArchived = archivedChains.filter((c) => c.id !== id);
+    const nextPinned = pinnedArchivedChainIds.filter((x) => x !== id);
     const nextChains = [...chains, chain];
-    set({ chains: nextChains, archivedChains: nextArchived });
+    set({ chains: nextChains, archivedChains: nextArchived, pinnedArchivedChainIds: nextPinned });
     persistChains(nextChains);
     persistArchivedChains(nextArchived);
+    storage.setPinnedArchivedChainIds(nextPinned);
   },
 
   deleteArchivedChain: (id: string) => {
-    const { archivedChains } = get();
+    const { archivedChains, pinnedArchivedChainIds } = get();
     const next = archivedChains.filter((c) => c.id !== id);
-    set({ archivedChains: next });
+    const nextPinned = pinnedArchivedChainIds.filter((x) => x !== id);
+    set({ archivedChains: next, pinnedArchivedChainIds: nextPinned });
     persistArchivedChains(next);
+    storage.setPinnedArchivedChainIds(nextPinned);
   },
 
   pinArchivedChain: (id: string) => {
-    const { archivedChains } = get();
+    const { archivedChains, pinnedArchivedChainIds } = get();
     const chain = archivedChains.find((c) => c.id === id);
     if (!chain) return;
-    const next = [chain, ...archivedChains.filter((c) => c.id !== id)];
-    set({ archivedChains: next });
-    persistArchivedChains(next);
+    const nextPinned = pinnedArchivedChainIds.includes(id)
+      ? pinnedArchivedChainIds
+      : [id, ...pinnedArchivedChainIds.filter((x) => x !== id)];
+    set({ pinnedArchivedChainIds: nextPinned });
+    storage.setPinnedArchivedChainIds(nextPinned);
+  },
+
+  unpinArchivedChain: (id: string) => {
+    const { pinnedArchivedChainIds } = get();
+    const nextPinned = pinnedArchivedChainIds.filter((x) => x !== id);
+    set({ pinnedArchivedChainIds: nextPinned });
+    storage.setPinnedArchivedChainIds(nextPinned);
   },
 
   setActiveChain: (id: string | null) => {
