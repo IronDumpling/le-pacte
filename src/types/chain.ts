@@ -4,7 +4,8 @@ export interface PrecedentRule {
 }
 
 export interface NodePause {
-  atMinute: number;
+  /** 暂停发生时的已过时间（毫秒），用于显示 mm:ss */
+  atElapsedMs: number;
   durationMs: number;
   ruleIndex: number;
 }

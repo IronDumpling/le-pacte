@@ -132,6 +132,13 @@ function formatDuration(ms: number): string {
   return `${Math.floor(ms / 60_000)}分钟`;
 }
 
+function formatElapsedToMmSs(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 function ChainNodeRow({
   nodeIndex,
   isFirst,
@@ -152,7 +159,7 @@ function ChainNodeRow({
   rules: { text: string; ruleIndex: number }[];
   focusDuration: string;
   extraDurationMs?: number;
-  pauses?: { atMinute: number; durationMs: number; ruleIndex: number }[];
+  pauses?: { atElapsedMs: number; durationMs: number; ruleIndex: number }[];
   isExpanded: boolean;
   onToggle: () => void;
 }) {
@@ -197,11 +204,14 @@ function ChainNodeRow({
             {pauses !== undefined && pauses.length > 0 && (
               <>
                 <Text style={chainNodeStyles.detailLabel}>暂停：</Text>
-                {pauses.map((p, i) => (
-                  <Text key={i} style={chainNodeStyles.detailItem}>
-                    在第{p.atMinute}分钟，暂停{formatDuration(p.durationMs)}，引用下必为例规则第{p.ruleIndex}条
-                  </Text>
-                ))}
+                {pauses.map((p, i) => {
+                  const atMs = 'atElapsedMs' in p ? p.atElapsedMs : ((p as { atMinute?: number }).atMinute ?? 0) * 60_000;
+                  return (
+                    <Text key={i} style={chainNodeStyles.detailItem}>
+                      在{formatElapsedToMmSs(atMs)}，暂停{formatDuration(p.durationMs)}，引用下必为例规则第{p.ruleIndex}条
+                    </Text>
+                  );
+                })}
               </>
             )}
           </View>

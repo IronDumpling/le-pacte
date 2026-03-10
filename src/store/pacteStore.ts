@@ -13,7 +13,7 @@ export interface PauseReason {
 }
 
 interface SessionPause {
-  atMinute: number;
+  atElapsedMs: number;
   startMs: number;
   ruleIndex: number;
   durationMs?: number;
@@ -76,13 +76,33 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     ]);
     let finalChains = chains.length > 0 ? chains : [createDefaultChain()];
     if (chains.length > 0) {
-      finalChains = finalChains.map((c) => ({
-        ...c,
-        reservationDurationLocked:
-          c.reservationDurationLocked === undefined
-            ? true
-            : c.reservationDurationLocked,
-      }));
+      finalChains = finalChains.map((c) => {
+        let nodeMetadata = c.nodeMetadata;
+        if (nodeMetadata) {
+          nodeMetadata = { ...nodeMetadata };
+          for (const key of Object.keys(nodeMetadata)) {
+            const meta = nodeMetadata[Number(key)];
+            if (meta?.pauses?.length) {
+              nodeMetadata[Number(key)] = {
+                ...meta,
+                pauses: meta.pauses.map((p: NodePause & { atMinute?: number }) =>
+                  'atElapsedMs' in p
+                    ? p
+                    : { atElapsedMs: (p.atMinute ?? 0) * 60_000, durationMs: p.durationMs, ruleIndex: p.ruleIndex }
+                ),
+              };
+            }
+          }
+        }
+        return {
+          ...c,
+          nodeMetadata,
+          reservationDurationLocked:
+            c.reservationDurationLocked === undefined
+              ? true
+              : c.reservationDurationLocked,
+        };
+      });
       persistChains(finalChains);
     }
     if (chains.length === 0) persistChains(finalChains);
@@ -202,7 +222,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     const pauses: NodePause[] = currentSessionPauses
       .filter((p) => p.durationMs !== undefined)
       .map((p) => ({
-        atMinute: p.atMinute,
+        atElapsedMs: p.atElapsedMs,
         durationMs: p.durationMs!,
         ruleIndex: p.ruleIndex,
       }));
@@ -243,13 +263,12 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   triggerPause: (ruleIndex: number, ruleText: string) => {
     const { focusedStartedAt, currentSessionPauses } = get();
     const elapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
-    const atMinute = Math.floor(elapsedMs / 60_000);
     set({
       frozenElapsedMs: elapsedMs,
       pauseReason: { ruleIndex, text: ruleText },
       currentSessionPauses: [
         ...currentSessionPauses,
-        { atMinute, startMs: Date.now(), ruleIndex },
+        { atElapsedMs: elapsedMs, startMs: Date.now(), ruleIndex },
       ],
     });
   },
@@ -293,12 +312,11 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       .precedentRules;
     const ruleDisplayIndex = rulesAfterAdd.length;
     const elapsedMs = frozenElapsedMs ?? 0;
-    const atMinute = Math.floor(elapsedMs / 60_000);
     const sessionPauses =
       newRule && trimmed
         ? [
             ...currentSessionPauses,
-            { atMinute, startMs: now, ruleIndex: ruleDisplayIndex },
+            { atElapsedMs: elapsedMs, startMs: now, ruleIndex: ruleDisplayIndex },
           ]
         : currentSessionPauses;
     set({
