@@ -83,12 +83,13 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
           for (const key of Object.keys(nodeMetadata)) {
             const meta = nodeMetadata[Number(key)];
             if (meta?.pauses?.length) {
+              type LegacyPause = { atMinute: number; durationMs: number; ruleIndex: number };
               nodeMetadata[Number(key)] = {
                 ...meta,
-                pauses: meta.pauses.map((p: NodePause & { atMinute?: number }) =>
+                pauses: meta.pauses.map((p: NodePause | LegacyPause): NodePause =>
                   'atElapsedMs' in p
                     ? p
-                    : { atElapsedMs: (p.atMinute ?? 0) * 60_000, durationMs: p.durationMs, ruleIndex: p.ruleIndex }
+                    : { atElapsedMs: (p as LegacyPause).atMinute * 60_000, durationMs: (p as LegacyPause).durationMs, ruleIndex: (p as LegacyPause).ruleIndex }
                 ),
               };
             }

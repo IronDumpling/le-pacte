@@ -6,6 +6,7 @@ import {
   Pressable,
   FlatList,
   ScrollView,
+  Modal,
   Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -15,6 +16,7 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
@@ -22,7 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
-import { ChainDisplay, HeavyButton } from '../design/components';
+import { HeavyButton } from '../design/components';
 import { colors, spacing, typography } from '../design/theme';
 import type { Chain } from '../types/chain';
 
@@ -45,9 +47,15 @@ function DashedChainLine({ style }: { style?: object }) {
   );
 }
 
-function formatFocusDuration(ms: number): string {
-  if (ms < 60_000) return `${Math.floor(ms / 1000)} 秒`;
-  return `${Math.floor(ms / 60_000)} 分钟`;
+function formatDurationAsHhMmSs(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function ChainNodeList({
@@ -100,7 +108,7 @@ function ChainNodeList({
                 showLineBelow={!isLast || showPendingNode}
                 useDashedLine={isLast && showPendingNode}
                 rules={rulesForNode}
-                focusDuration={formatFocusDuration(focusDuration)}
+                focusTargetMs={focusDuration}
                 extraDurationMs={metadata?.extraDurationMs}
                 pauses={metadata?.pauses}
                 isExpanded={isExpanded}
@@ -145,7 +153,7 @@ function ChainNodeRow({
   showLineBelow,
   useDashedLine,
   rules,
-  focusDuration,
+  focusTargetMs,
   extraDurationMs,
   pauses,
   isExpanded,
@@ -157,7 +165,7 @@ function ChainNodeRow({
   showLineBelow: boolean;
   useDashedLine?: boolean;
   rules: { text: string; ruleIndex: number }[];
-  focusDuration: string;
+  focusTargetMs: number;
   extraDurationMs?: number;
   pauses?: { atElapsedMs: number; durationMs: number; ruleIndex: number }[];
   isExpanded: boolean;
@@ -186,10 +194,7 @@ function ChainNodeRow({
           {isExpanded && (
           <View style={chainNodeStyles.expandedContent}>
             <Text style={chainNodeStyles.detailItem}>
-              专注时长：{focusDuration}
-              {extraDurationMs !== undefined && extraDurationMs > 0
-                ? `（额外${formatDuration(extraDurationMs)}）`
-                : ''}
+              专注时长：{formatDurationAsHhMmSs(focusTargetMs + (extraDurationMs ?? 0))}
             </Text>
             {rules.length > 0 && (
               <>
@@ -286,24 +291,24 @@ const chainNodeStyles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   chainVisual: {
-    width: 32,
+    width: 40,
     alignItems: 'center',
   },
   dotRow: {
-    height: 28,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chainLine: {
-    width: 2,
+    width: 3,
     flex: 1,
     minHeight: 8,
     backgroundColor: colors.accent,
   },
   chainDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.accent,
   },
   details: {
@@ -311,7 +316,7 @@ const chainNodeStyles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   rowHeader: {
-    height: 28,
+    height: 36,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -319,14 +324,15 @@ const chainNodeStyles = StyleSheet.create({
   nodeLabel: {
     ...typography.chainLabel,
     color: colors.accent,
+    fontSize: 20,
   },
   expandHint: {
     ...typography.body,
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 14,
   },
   expandIcon: {
-    fontSize: 10,
+    fontSize: 14,
     color: colors.textMuted,
   },
   dashedLineContainer: {
@@ -339,22 +345,22 @@ const chainNodeStyles = StyleSheet.create({
     minHeight: 2,
   },
   expandedContent: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.backgroundSecondary,
   },
   detailLabel: {
     ...typography.body,
     color: colors.accent,
-    fontSize: 14,
+    fontSize: 18,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
   },
   detailItem: {
     ...typography.body,
     color: colors.textMuted,
-    fontSize: 14,
+    fontSize: 18,
     marginBottom: spacing.xs,
   },
   pendingRow: {
@@ -363,24 +369,24 @@ const chainNodeStyles = StyleSheet.create({
     alignItems: 'stretch',
   },
   pendingChainVisual: {
-    width: 32,
+    width: 40,
     alignItems: 'center',
   },
   pendingDotRow: {
-    height: 28,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pendingContainer: {
-    width: 18,
-    height: 18,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pendingDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.primary,
   },
   pendingLabelColumn: {
@@ -394,40 +400,250 @@ const chainNodeStyles = StyleSheet.create({
   pendingLabel: {
     ...typography.body,
     color: colors.textMuted,
-    fontSize: 12,
-    height: 28,
-    lineHeight: 28,
+    fontSize: 16,
+    height: 36,
+    lineHeight: 36,
   },
 });
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+function ChainDetailModal({
+  chain,
+  onClose,
+}: {
+  chain: Chain;
+  onClose: () => void;
+}) {
+  const reservationMinutes = Math.round(chain.reservationDurationMs / 60_000);
+  const focusDuration = chain.focusTargetMs
+    ? formatDurationAsHhMmSs(chain.focusTargetMs)
+    : '—';
+  const rules = chain.precedentRules;
+
+  return (
+    <Modal visible transparent animationType="fade">
+      <Pressable style={modalStyles.overlay} onPress={onClose}>
+        <Pressable style={modalStyles.content} onPress={(e) => e.stopPropagation()}>
+          <View style={modalStyles.header}>
+            <Text style={modalStyles.title}>{chain.theme || '专注'}</Text>
+            <Pressable onPress={onClose} hitSlop={16}>
+              <Text style={modalStyles.closeText}>关闭</Text>
+            </Pressable>
+          </View>
+          <ScrollView style={modalStyles.body} showsVerticalScrollIndicator={false}>
+            <Text style={modalStyles.detailItem}>
+              预定时长：{reservationMinutes} 分钟
+            </Text>
+            <Text style={modalStyles.detailItem}>
+              契约专注时长：{focusDuration}
+            </Text>
+            <Text style={modalStyles.detailLabel}>下必为例规则</Text>
+            {rules.length === 0 ? (
+              <Text style={modalStyles.emptyRules}>暂无规则</Text>
+            ) : (
+              rules.map((r, i) => (
+                <View key={i} style={modalStyles.ruleItem}>
+                  <Text style={modalStyles.ruleIndex}>
+                    {r.nodeIndex >= 0 ? `节点 #${r.nodeIndex + 1}` : '预设'}
+                  </Text>
+                  <Text style={modalStyles.ruleText}>{r.text}</Text>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  content: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  title: {
+    ...typography.title,
+    color: colors.text,
+  },
+  closeText: {
+    ...typography.body,
+    color: colors.accent,
+  },
+  body: {
+    maxHeight: 400,
+  },
+  detailItem: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
+  detailLabel: {
+    ...typography.body,
+    color: colors.accent,
+    fontSize: 16,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  emptyRules: {
+    ...typography.body,
+    color: colors.textMuted,
+  },
+  ruleItem: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  ruleIndex: {
+    ...typography.chainLabel,
+    color: colors.accent,
+    marginBottom: spacing.xs,
+  },
+  ruleText: {
+    ...typography.body,
+    color: colors.text,
+  },
+});
 
 interface IdleScreenProps {
   animateSuccess?: boolean;
   animateBreak?: boolean;
 }
 
+function ChainCountBadge({
+  count,
+  animateSuccess,
+  animateBreak,
+}: {
+  count: number;
+  animateSuccess?: boolean;
+  animateBreak?: boolean;
+}) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const prevCount = useRef(count);
+
+  useEffect(() => {
+    if (animateSuccess) {
+      scale.value = withSequence(
+        withSpring(1.15, { damping: 10, stiffness: 200 }),
+        withSpring(1)
+      );
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  }, [animateSuccess, count]);
+
+  useEffect(() => {
+    if (animateBreak) {
+      translateX.value = withSequence(
+        withTiming(-8, { duration: 40 }),
+        withTiming(8, { duration: 40 }),
+        withTiming(-12, { duration: 60 }),
+        withTiming(12, { duration: 60 }),
+        withTiming(-6, { duration: 50 }),
+        withTiming(6, { duration: 50 }),
+        withTiming(0, { duration: 80 })
+      );
+      opacity.value = withSequence(
+        withTiming(0.8, { duration: 150 }),
+        withTiming(0.2, { duration: 200 }),
+        withTiming(1, { duration: 150 })
+      );
+      scale.value = withSequence(
+        withTiming(1.05, { duration: 100 }),
+        withTiming(0.85, { duration: 250 }),
+        withSpring(1, { damping: 12, stiffness: 100 })
+      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  }, [animateBreak]);
+
+  useEffect(() => {
+    if (count !== prevCount.current) {
+      if (count > prevCount.current) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else if (count === 0) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      prevCount.current = count;
+    }
+  }, [count]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { translateX: translateX.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.chainCountBadge, animatedStyle]}>
+      <Text style={styles.chainCountLabel}>CHAIN</Text>
+      <Text style={styles.chainCountNumber}>#{count}</Text>
+    </Animated.View>
+  );
+}
+
 function ChainCard({
   chain,
   isActive,
+  isConfigured,
+  animateSuccess,
+  animateBreak,
   onSelect,
+  onShowDetail,
 }: {
   chain: Chain;
   isActive: boolean;
+  isConfigured: boolean;
+  animateSuccess?: boolean;
+  animateBreak?: boolean;
   onSelect: () => void;
+  onShowDetail?: () => void;
 }) {
   const themeLabel = chain.theme || '专注';
+  const handlePress = () => {
+    if (isConfigured && onShowDetail) {
+      onShowDetail();
+    } else {
+      onSelect();
+    }
+  };
   return (
     <Pressable
-      onPress={onSelect}
+      onPress={handlePress}
       style={[styles.chainCard, isActive && styles.chainCardActive]}
     >
-      <Text style={styles.chainTheme} numberOfLines={1}>
-        {themeLabel}
-      </Text>
-      <Text style={styles.chainLength}>CHAIN #{chain.length}</Text>
+      <View style={styles.chainCardTop}>
+        <Text style={styles.chainTheme} numberOfLines={1}>
+          {themeLabel}
+        </Text>
+        <ChainCountBadge
+          count={chain.length}
+          animateSuccess={animateSuccess}
+          animateBreak={animateBreak}
+        />
+      </View>
       <Text style={styles.chainRules}>
-        下必为例 × {chain.precedentRules.length}
+        下必为例规则：{chain.precedentRules.length}条
       </Text>
     </Pressable>
   );
@@ -469,13 +685,8 @@ export function IdleScreen({
   } = usePacteStore();
 
   const [viewedIndex, setViewedIndex] = useState<number>(0);
-  const viewedChain =
-    viewedIndex < chains.length ? chains[viewedIndex] : null;
+  const [chainDetailModalChain, setChainDetailModalChain] = useState<Chain | null>(null);
   const activeChain = chains.find((c) => c.id === activeChainId);
-  const canReserve =
-    viewedChain &&
-    viewedChain.focusTargetMs !== null &&
-    viewedChain.theme !== null;
 
   const flatListRef = useRef<FlatList>(null);
   const lastHapticIndex = useRef<number | null>(null);
@@ -547,19 +758,6 @@ export function IdleScreen({
     }
   }, [activeChainId, chains]);
 
-
-  const handleMainButtonPress = () => {
-    if (canReserve && viewedChain) {
-      setActiveChain(viewedChain.id);
-      reserve();
-    } else if (viewedChain) {
-      router.push({
-        pathname: '/chain-settings',
-        params: { id: viewedChain.id },
-      });
-    }
-  };
-
   const handleChainSelect = useCallback(
     (chain: Chain) => {
       const index = chains.findIndex((c) => c.id === chain.id);
@@ -572,111 +770,115 @@ export function IdleScreen({
     [chains, setActiveChain]
   );
 
-  const renderChainItem = ({ item }: { item: Chain }) => (
-    <View style={styles.chainCardWrapper}>
-      <ChainCard
-        chain={item}
-        isActive={item.id === activeChainId}
-        onSelect={() => handleChainSelect(item)}
-      />
+  const renderChainPage = ({ item }: { item: Chain }) => {
+    const isConfigured =
+      item.theme !== null && item.focusTargetMs !== null;
+    const itemCanReserve = isConfigured;
+    return (
+      <View style={styles.pageWrapper}>
+        <View style={styles.pageHeader}>
+          <ChainCard
+            chain={item}
+            isActive={item.id === activeChainId}
+            isConfigured={isConfigured}
+            animateSuccess={
+              item.id === activeChainId ? animateSuccess : undefined
+            }
+            animateBreak={
+              item.id === activeChainId ? animateBreak : undefined
+            }
+            onSelect={() => handleChainSelect(item)}
+            onShowDetail={isConfigured ? () => setChainDetailModalChain(item) : undefined}
+          />
+        </View>
+        <View style={styles.pageContent}>
+          {isConfigured ? (
+            <ChainNodeList
+              chain={item}
+              showPendingNode={!!itemCanReserve}
+            />
+          ) : (
+            <View style={styles.unconfiguredPlaceholder} />
+          )}
+        </View>
+        <View style={styles.pageActions}>
+          <HeavyButton
+            title={itemCanReserve ? '预定契约' : '配置契约链'}
+            onPress={() => {
+              if (itemCanReserve) {
+                setActiveChain(item.id);
+                reserve();
+              } else {
+                router.push({
+                  pathname: '/chain-settings',
+                  params: { id: item.id },
+                });
+              }
+            }}
+            variant="primary"
+          />
+        </View>
+      </View>
+    );
+  };
+
+  const renderAddPage = () => (
+    <View style={styles.pageWrapper}>
+      <View style={styles.pageHeader}>
+        <AddChainCard
+          onPress={() => {
+            pendingScrollToNewChain.current = true;
+            addChain();
+          }}
+          onHaptic={() =>
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+          }
+        />
+      </View>
+      <View style={styles.pageContent}>
+        <View style={styles.addPagePlaceholder} />
+      </View>
+      <View style={styles.pageActions} />
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.horizontalSection}>
-        <FlatList
-          ref={flatListRef}
-          data={chains}
-          renderItem={renderChainItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          onMomentumScrollEnd={handleScrollEnd}
-          onScrollEndDrag={handleScrollEnd}
-          onScrollBeginDrag={handleScrollBeginDrag}
-          snapToInterval={SCREEN_WIDTH}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          ListFooterComponent={
-            <View style={styles.chainCardWrapper}>
-              <AddChainCard
-                onPress={() => {
-                  pendingScrollToNewChain.current = true;
-                  addChain();
-                }}
-                onHaptic={() =>
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-                }
-              />
-            </View>
-          }
-          onScrollToIndexFailed={(info) => {
-            setTimeout(
-              () =>
-                flatListRef.current?.scrollToIndex({
-                  index: info.index,
-                  animated: true,
-                }),
-              100
-            );
-          }}
+      {chainDetailModalChain && (
+        <ChainDetailModal
+          chain={chainDetailModalChain}
+          onClose={() => setChainDetailModalChain(null)}
         />
-      </View>
-
-      {viewedChain ? (
-        <>
-          <View style={styles.visualSection}>
-            {viewedChain.theme !== null &&
-            viewedChain.focusTargetMs !== null ? (
-              <>
-                <ChainDisplay
-                  count={viewedChain.length}
-                  animateSuccess={
-                    viewedChain.id === activeChainId
-                      ? animateSuccess
-                      : undefined
-                  }
-                  animateBreak={
-                    viewedChain.id === activeChainId ? animateBreak : undefined
-                  }
-                />
-                <ChainNodeList
-                  chain={viewedChain}
-                  showPendingNode={!!canReserve}
-                />
-              </>
-            ) : (
-              <View style={styles.unconfiguredPlaceholder} />
-            )}
-          </View>
-
-          <View style={styles.actions}>
-            <HeavyButton
-              title={canReserve ? '预定契约' : '配置契约链'}
-              onPress={handleMainButtonPress}
-              variant="primary"
-            />
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/precedent-rules',
-                  params: { chainId: viewedChain.id },
-                })
-              }
-              style={styles.rulesLink}
-              hitSlop={16}
-            >
-              <Text style={styles.rulesText}>下必为例规则</Text>
-            </Pressable>
-          </View>
-        </>
-      ) : (
-        <View style={styles.emptyBottom} />
       )}
+      <FlatList
+        ref={flatListRef}
+        data={chains}
+        renderItem={renderChainPage}
+        keyExtractor={(item) => item.id}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={handleScrollEnd}
+        onScrollEndDrag={handleScrollEnd}
+        onScrollBeginDrag={handleScrollBeginDrag}
+        snapToInterval={SCREEN_WIDTH}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        style={styles.flatList}
+        ListFooterComponent={renderAddPage}
+        onScrollToIndexFailed={(info) => {
+          setTimeout(
+            () =>
+              flatListRef.current?.scrollToIndex({
+                index: info.index,
+                animated: true,
+              }),
+            100
+          );
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -686,43 +888,75 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  horizontalSection: {
-    paddingVertical: spacing.md,
+  flatList: {
+    flex: 1,
   },
-  chainList: {},
-  chainCardWrapper: {
+  pageWrapper: {
     width: SCREEN_WIDTH,
+    flex: 1,
+  },
+  pageHeader: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  pageContent: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  pageActions: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  addPagePlaceholder: {
+    flex: 1,
+    minHeight: 120,
   },
   chainCard: {
-    width: SCREEN_WIDTH,
-    height: 120,
+    width: '100%',
+    height: 160,
     backgroundColor: colors.backgroundSecondary,
     borderRadius: 12,
     padding: spacing.lg,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   chainCardActive: {
     borderColor: colors.primary,
   },
+  chainCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
   chainTheme: {
     ...typography.title,
     color: colors.text,
-    marginBottom: spacing.xs,
+    flex: 1,
+    marginRight: spacing.md,
   },
-  chainLength: {
+  chainCountBadge: {
+    alignItems: 'flex-end',
+  },
+  chainCountLabel: {
     ...typography.chainLabel,
     color: colors.accent,
+    letterSpacing: 2,
+    marginBottom: 2,
+  },
+  chainCountNumber: {
+    ...typography.chainNumber,
+    color: colors.text,
+    fontSize: 36,
   },
   chainRules: {
     ...typography.body,
     color: colors.textMuted,
-    marginTop: spacing.xs,
   },
   addCard: {
-    width: SCREEN_WIDTH,
-    height: 120,
+    width: '100%',
+    height: 160,
     backgroundColor: colors.backgroundSecondary,
     borderRadius: 12,
     borderWidth: 2,
@@ -786,13 +1020,5 @@ const styles = StyleSheet.create({
   actions: {
     padding: spacing.xl,
     alignItems: 'center',
-  },
-  rulesLink: {
-    marginTop: spacing.lg,
-    padding: spacing.sm,
-  },
-  rulesText: {
-    ...typography.body,
-    color: colors.textMuted,
   },
 });
