@@ -6,10 +6,10 @@ type FontWeightKey = 'regular' | 'semibold' | 'bold';
 
 export type Typography = {
   chainNumber: { fontFamily: string; fontWeight: '700'; fontSize: number };
-  chainLabel: { fontFamily: string; fontWeight: '600'; fontSize: number };
-  title: { fontFamily: string; fontWeight: '600'; fontSize: number };
+  chainLabel: { fontFamily: string; fontWeight: '600'; fontSize: number; letterSpacing: number };
+  title: { fontFamily: string; fontWeight: '600'; fontSize: number; letterSpacing: number };
   body: { fontFamily: string; fontWeight: '400'; fontSize: number };
-  button: { fontFamily: string; fontWeight: '700'; fontSize: number };
+  button: { fontFamily: string; fontWeight: '700'; fontSize: number; letterSpacing: number };
 };
 
 function fontKey(locale: Locale, weight: FontWeightKey) {
@@ -26,17 +26,20 @@ export function createTypography(locale: Locale): Typography {
     chainNumber: {
       fontFamily: fontKey(locale, 'bold'),
       fontWeight: '700',
-      fontSize: 48,
+      fontSize: 52,
     },
     chainLabel: {
       fontFamily: fontKey(locale, 'semibold'),
       fontWeight: '600',
-      fontSize: 18,
+      fontSize: 14,
+      // Industrial/condensed feel: tighter size + tracking done via letterSpacing.
+      letterSpacing: 2.5,
     },
     title: {
       fontFamily: fontKey(locale, 'semibold'),
       fontWeight: '600',
-      fontSize: 24,
+      fontSize: 26,
+      letterSpacing: 0.5,
     },
     body: {
       fontFamily: fontKey(locale, 'regular'),
@@ -47,6 +50,7 @@ export function createTypography(locale: Locale): Typography {
       fontFamily: fontKey(locale, 'bold'),
       fontWeight: '700',
       fontSize: 18,
+      letterSpacing: 1.5,
     },
   };
 }

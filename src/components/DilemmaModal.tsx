@@ -19,13 +19,15 @@ import { useLocale } from '../i18n/LocaleContext';
 import { useTypography } from '../design/typography';
 
 export function DilemmaModal() {
-  const { chooseDestruction, chooseCompromise, returnToFocus } = usePacteStore();
+  const { chooseDestruction, chooseCompromise, returnToFocus, chains, activeChainId } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
   const typography = useTypography();
   const styles = useMemo(() => makeStyles(themeColors, typography), [themeColors, typography]);
   const [exceptionText, setExceptionText] = useState('');
   const [showInput, setShowInput] = useState(false);
+  const activeChainLength =
+    (activeChainId ? chains.find((c) => c.id === activeChainId)?.length : undefined) ?? 0;
 
   const handleDestruction = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -95,7 +97,7 @@ export function DilemmaModal() {
 
           <View style={styles.options}>
             <HeavyButton
-              title={t('dilemma_admitFailure')}
+              title={t('dilemma_admitFailureDestroy', { n: String(activeChainLength) })}
               onPress={handleDestruction}
               variant="destruction"
               style={styles.optionButton}
