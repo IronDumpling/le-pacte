@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -9,10 +9,11 @@ import {
   useFocusedElapsed,
   formatMsToTime,
 } from '../hooks/useTimer';
-import { colors, typography, spacing } from '../design/theme';
+import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { PauseModal } from './PauseModal';
+import { useTypography } from '../design/typography';
 
 const TIMER_RING_SIZE = 240;
 
@@ -30,6 +31,8 @@ export function FocusedScreen() {
   } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
+  const typography = useTypography();
+  const styles = useMemo(() => makeStyles(typography), [typography]);
 
   const chain = chains.find((c) => c.id === activeChainId);
   const targetMs = chain?.focusTargetMs ?? 60 * 60 * 1000;
@@ -188,7 +191,8 @@ export function FocusedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

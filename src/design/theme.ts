@@ -24,34 +24,6 @@ export const spacing = {
   xxl: 48,
 } as const;
 
-export const typography = {
-  chainNumber: {
-    fontFamily: 'monospace',
-    fontWeight: '700' as const,
-    fontSize: 48,
-  },
-  chainLabel: {
-    fontFamily: 'monospace',
-    fontWeight: '600' as const,
-    fontSize: 18,
-  },
-  title: {
-    fontFamily: 'System',
-    fontWeight: '600' as const,
-    fontSize: 24,
-  },
-  body: {
-    fontFamily: 'System',
-    fontWeight: '400' as const,
-    fontSize: 16,
-  },
-  button: {
-    fontFamily: 'System',
-    fontWeight: '700' as const,
-    fontSize: 18,
-  },
-} as const;
-
 export const shadows = {
   heavyButton: {
     shadowColor: '#000',

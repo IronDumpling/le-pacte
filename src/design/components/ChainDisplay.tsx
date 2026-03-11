@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -7,7 +7,8 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { colors, typography } from '../theme';
+import { colors } from '../theme';
+import { useTypography } from '../typography';
 
 interface ChainDisplayProps {
   count: number;
@@ -19,6 +20,8 @@ export function ChainDisplay({ count, animateBreak, animateSuccess }: ChainDispl
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
   const translateX = useSharedValue(0);
+  const typography = useTypography();
+  const styles = useMemo(() => makeStyles(typography), [typography]);
 
   React.useEffect(() => {
     if (animateSuccess) {
@@ -66,7 +69,8 @@ export function ChainDisplay({ count, animateBreak, animateSuccess }: ChainDispl
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
   container: {
     alignItems: 'center',
     marginBottom: 24,

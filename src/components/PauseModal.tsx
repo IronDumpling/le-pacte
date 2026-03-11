@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PrecedentRule } from '../types/chain';
-import { colors, typography, spacing } from '../design/theme';
+import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
+import { useTypography } from '../design/typography';
 
 interface PauseModalProps {
   precedentRules: PrecedentRule[];
@@ -26,6 +27,11 @@ export function PauseModal({
 }: PauseModalProps) {
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
+  const typography = useTypography();
+  const styles = useMemo(
+    () => makeStyles(themeColors, typography),
+    [themeColors, typography]
+  );
   return (
     <Modal visible animationType="fade">
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
@@ -59,7 +65,8 @@ export function PauseModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -67,7 +74,7 @@ const styles = StyleSheet.create({
   header: {
     padding: spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: colors.backgroundSecondary,
+    borderBottomColor: themeColors.backgroundSecondary,
   },
   title: {
     ...typography.title,

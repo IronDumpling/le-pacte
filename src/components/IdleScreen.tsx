@@ -31,13 +31,15 @@ import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
-import { colors, spacing, typography } from '../design/theme';
+import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { SettingsPage } from './SettingsPage';
 import type { Chain } from '../types/chain';
+import { useTypography } from '../design/typography';
 
 function DashedChainLine({ style }: { style?: object }) {
+  const chainNodeStyles = useChainNodeStyles();
   const dashHeight = 2;
   const segmentCount = 10;
   return (
@@ -74,6 +76,7 @@ function ChainNodeList({
   chain: Chain;
   showPendingNode: boolean;
 }) {
+  const chainNodeStyles = useChainNodeStyles();
   const { t } = useLocale();
   const [expandedSet, setExpandedSet] = useState<Set<number>>(new Set());
   const focusDuration = chain.focusTargetMs ?? 0;
@@ -181,6 +184,7 @@ function ChainNodeRow({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const chainNodeStyles = useChainNodeStyles();
   const { t } = useLocale();
   return (
     <Pressable onPress={onToggle} style={chainNodeStyles.row}>
@@ -244,6 +248,7 @@ function PendingNodeDot({
   hasNodesAbove: boolean;
   useDashedLine?: boolean;
 }) {
+  const chainNodeStyles = useChainNodeStyles();
   const { t } = useLocale();
   const dotScale = useSharedValue(1);
 
@@ -285,7 +290,11 @@ function PendingNodeDot({
   );
 }
 
-const chainNodeStyles = StyleSheet.create({
+function useChainNodeStyles() {
+  const typography = useTypography();
+  return useMemo(
+    () =>
+      StyleSheet.create({
   scroll: {
     flex: 1,
     width: '100%',
@@ -417,7 +426,10 @@ const chainNodeStyles = StyleSheet.create({
     height: 36,
     lineHeight: 36,
   },
-});
+      }),
+    [typography]
+  );
+}
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -434,6 +446,7 @@ function ChainDetailModal({
   chain: Chain;
   onClose: () => void;
 }) {
+  const modalStyles = useModalStyles();
   const { t } = useLocale();
   const { colors: themeColors } = useTheme();
   const reservationMinutes = Math.round(chain.reservationDurationMs / 60_000);
@@ -484,7 +497,11 @@ function ChainDetailModal({
   );
 }
 
-const modalStyles = StyleSheet.create({
+function useModalStyles() {
+  const typography = useTypography();
+  return useMemo(
+    () =>
+      StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -548,7 +565,10 @@ const modalStyles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
   },
-});
+      }),
+    [typography]
+  );
+}
 
 interface IdleScreenProps {
   animateSuccess?: boolean;
@@ -564,6 +584,7 @@ function ChainCountBadge({
   animateSuccess?: boolean;
   animateBreak?: boolean;
 }) {
+  const styles = useIdleStyles();
   const { t } = useLocale();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
@@ -649,6 +670,7 @@ function SwipeUpPageWrapper({
   pageIndex: number;
   viewedIndex: number;
 }) {
+  const styles = useIdleStyles();
   const translateY = useSharedValue(0);
   const bodyTranslateY = useSharedValue(0);
   const headerTranslateX = useSharedValue(0);
@@ -793,6 +815,7 @@ function ChainCard({
   onShowDetail?: () => void;
   cornerRadius?: number;
 }) {
+  const styles = useIdleStyles();
   const { t } = useLocale();
   const themeLabel = chain.theme || t('idle_defaultTheme');
   const handlePress = () => {
@@ -847,6 +870,7 @@ function ArchivedChainRow({
   onPin: () => void;
   onUnpin: () => void;
 }) {
+  const archivedStyles = useArchivedStyles();
   const translateX = useSharedValue(0);
   const prevGesture = useRef(0);
   const hasSnappedThisGesture = useRef(false);
@@ -999,7 +1023,10 @@ function ArchivedChainRow({
   );
 }
 
-const archivedStyles = StyleSheet.create({
+function useArchivedStyles() {
+  return useMemo(
+    () =>
+      StyleSheet.create({
   rowWrapper: {
     width: '100%',
     height: 160,
@@ -1054,7 +1081,10 @@ const archivedStyles = StyleSheet.create({
     borderTopRightRadius: 12,
     borderBottomRightRadius: 12,
   },
-});
+      }),
+    []
+  );
+}
 
 function AddChainCard({
   onPress,
@@ -1065,6 +1095,7 @@ function AddChainCard({
   onHaptic: () => void;
   addChainLabel: string;
 }) {
+  const styles = useIdleStyles();
   return (
     <Pressable
       onPress={() => {
@@ -1083,6 +1114,8 @@ export function IdleScreen({
   animateSuccess,
   animateBreak,
 }: IdleScreenProps) {
+  const styles = useIdleStyles();
+  const modalStyles = useModalStyles();
   const router = useRouter();
   const {
     chains,
@@ -1465,7 +1498,11 @@ export function IdleScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function useIdleStyles() {
+  const typography = useTypography();
+  return useMemo(
+    () =>
+      StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -1684,4 +1721,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     alignItems: 'center',
   },
-});
+      }),
+    [typography]
+  );
+}

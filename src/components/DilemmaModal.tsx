@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,14 +13,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
-import { colors, typography, spacing } from '../design/theme';
+import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
+import { useTypography } from '../design/typography';
 
 export function DilemmaModal() {
   const { chooseDestruction, chooseCompromise, returnToFocus } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
+  const typography = useTypography();
+  const styles = useMemo(() => makeStyles(themeColors, typography), [themeColors, typography]);
   const [exceptionText, setExceptionText] = useState('');
   const [showInput, setShowInput] = useState(false);
 
@@ -113,7 +116,8 @@ export function DilemmaModal() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   inputContainer: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: themeColors.backgroundSecondary,
     borderRadius: 16,
     padding: spacing.xl,
   },
@@ -164,7 +168,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   input: {
-    backgroundColor: colors.background,
+    backgroundColor: themeColors.background,
     borderRadius: 8,
     padding: spacing.md,
     color: colors.text,
