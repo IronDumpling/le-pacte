@@ -747,7 +747,8 @@ function createStyles(
     marginBottom: spacing.md,
   },
   rulesHint: {
-    ...typography.body,
+    // Explain precedence principle → serif body
+    ...typography.serif.body,
     color: c.textMuted,
     marginBottom: spacing.lg,
   },
@@ -758,7 +759,8 @@ function createStyles(
     marginBottom: spacing.sm,
   },
   ruleItemText: {
-    ...typography.body,
+    // Actual rule text → serif body
+    ...typography.serif.body,
     color: c.text,
   },
   addRuleBox: {
@@ -806,12 +808,13 @@ function createStyles(
     padding: spacing.xl,
   },
   addRuleTitle: {
-    ...typography.title,
+    // "Add precedent rule" heading → serif
+    ...typography.serif.title,
     color: c.text,
     marginBottom: spacing.sm,
   },
   addRuleSubtitle: {
-    ...typography.body,
+    ...typography.serif.body,
     color: c.textMuted,
     marginBottom: spacing.lg,
   },

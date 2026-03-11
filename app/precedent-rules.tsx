@@ -70,16 +70,18 @@ function createStyles(themeColors: any, typography: ReturnType<typeof useTypogra
     borderBottomColor: themeColors.backgroundSecondary,
   },
   backText: {
+    // Navigation control → keep sans body
     ...typography.body,
     color: themeColors.accent,
     marginBottom: spacing.md,
   },
   title: {
-    ...typography.title,
+    // Precedent rules are "case law" → serif
+    ...typography.serif.title,
     color: themeColors.text,
   },
   subtitle: {
-    ...typography.body,
+    ...typography.serif.subtitle,
     color: themeColors.textMuted,
     marginTop: spacing.sm,
   },
@@ -90,11 +92,11 @@ function createStyles(themeColors: any, typography: ReturnType<typeof useTypogra
     padding: spacing.xl,
   },
   emptyText: {
-    ...typography.title,
+    ...typography.serif.title,
     color: themeColors.textMuted,
   },
   emptyHint: {
-    ...typography.body,
+    ...typography.serif.body,
     color: themeColors.textMuted,
     marginTop: spacing.sm,
   },
@@ -113,7 +115,7 @@ function createStyles(themeColors: any, typography: ReturnType<typeof useTypogra
     marginBottom: spacing.xs,
   },
   itemText: {
-    ...typography.body,
+    ...typography.serif.body,
     color: themeColors.text,
   },
   });

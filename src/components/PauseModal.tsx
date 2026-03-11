@@ -67,50 +67,52 @@ export function PauseModal({
 
 const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypography>) =>
   StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    padding: spacing.xl,
-    borderBottomWidth: 1,
-    borderBottomColor: themeColors.backgroundSecondary,
-  },
-  title: {
-    ...typography.title,
-    color: colors.text,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginTop: spacing.sm,
-  },
-  list: {
-    padding: spacing.xl,
-  },
-  ruleItem: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 8,
-    padding: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  ruleItemPressed: {
-    opacity: 0.8,
-  },
-  ruleText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  footer: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  backBtn: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-  },
-  backText: {
-    ...typography.body,
-    color: colors.accent,
-  },
-});
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      padding: spacing.xl,
+      borderBottomWidth: 1,
+      borderBottomColor: themeColors.backgroundSecondary,
+    },
+    title: {
+      // Precedent selection is part of "case law" → use serif
+      ...typography.serif.title,
+      color: colors.text,
+    },
+    subtitle: {
+      ...typography.serif.subtitle,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+    },
+    list: {
+      padding: spacing.xl,
+    },
+    ruleItem: {
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: 8,
+      padding: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    ruleItemPressed: {
+      opacity: 0.8,
+    },
+    ruleText: {
+      ...typography.serif.body,
+      color: colors.text,
+    },
+    footer: {
+      padding: spacing.xl,
+      alignItems: 'center',
+    },
+    backBtn: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xl,
+    },
+    backText: {
+      // Back button is a general control → keep sans body
+      ...typography.body,
+      color: colors.accent,
+    },
+  });

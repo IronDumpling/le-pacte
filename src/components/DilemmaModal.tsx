@@ -65,7 +65,7 @@ export function DilemmaModal() {
             <TextInput
               style={styles.input}
               placeholder={t('dilemma_placeholder')}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={themeColors.textMuted}
               value={exceptionText}
               onChangeText={setExceptionText}
               multiline
@@ -120,88 +120,90 @@ export function DilemmaModal() {
 
 const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypography>) =>
   StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-  },
-  content: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  title: {
-    ...typography.title,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginBottom: spacing.xxl,
-  },
-  options: {
-    width: '100%',
-    gap: spacing.lg,
-    alignItems: 'center',
-  },
-  optionButton: {
-    width: '100%',
-    maxWidth: 320,
-  },
-  inputOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
-  inputContainer: {
-    backgroundColor: themeColors.backgroundSecondary,
-    borderRadius: 16,
-    padding: spacing.xl,
-  },
-  inputTitle: {
-    ...typography.title,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  inputHint: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginBottom: spacing.lg,
-  },
-  input: {
-    backgroundColor: themeColors.background,
-    borderRadius: 8,
-    padding: spacing.md,
-    color: colors.text,
-    ...typography.body,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  inputActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.md,
-    marginTop: spacing.lg,
-  },
-  cancelBtn: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  cancelText: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-  submitBtn: {
-    minWidth: 140,
-  },
-  backBtn: {
-    marginTop: spacing.xl,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  backText: {
-    ...typography.body,
-    color: colors.accent,
-  },
-});
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+    },
+    content: {
+      padding: spacing.xl,
+      alignItems: 'center',
+    },
+    title: {
+      // Dilemma is part of precedent / case-law decision → serif
+      ...typography.serif.title,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    subtitle: {
+      ...typography.serif.subtitle,
+      color: colors.textMuted,
+      marginBottom: spacing.xxl,
+    },
+    options: {
+      width: '100%',
+      gap: spacing.lg,
+      alignItems: 'center',
+    },
+    optionButton: {
+      width: '100%',
+      maxWidth: 320,
+    },
+    inputOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    inputContainer: {
+      backgroundColor: themeColors.backgroundSecondary,
+      borderRadius: 16,
+      padding: spacing.xl,
+    },
+    inputTitle: {
+      ...typography.serif.title,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    inputHint: {
+      ...typography.serif.body,
+      color: colors.textMuted,
+      marginBottom: spacing.lg,
+    },
+    input: {
+      backgroundColor: themeColors.background,
+      borderRadius: 8,
+      padding: spacing.md,
+      color: themeColors.text,
+      ...typography.serif.body,
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    inputActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: spacing.md,
+      marginTop: spacing.lg,
+    },
+    cancelBtn: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    cancelText: {
+      // General controls remain sans
+      ...typography.body,
+      color: colors.textMuted,
+    },
+    submitBtn: {
+      minWidth: 140,
+    },
+    backBtn: {
+      marginTop: spacing.xl,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+    },
+    backText: {
+      ...typography.body,
+      color: colors.accent,
+    },
+  });
