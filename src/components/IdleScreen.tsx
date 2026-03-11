@@ -493,7 +493,7 @@ function useChainNodeStyles() {
     fontSize: 14,
   },
   expandIcon: {
-    fontSize: 14,
+    fontSize: 18,
     color: colors.textMuted,
   },
   dashedLineContainer: {
@@ -510,7 +510,7 @@ function useChainNodeStyles() {
     marginBottom: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.backgroundSecondary,
+    borderTopColor: colors.textMuted,
   },
   detailLabel: {
     ...typography.body,
@@ -990,6 +990,32 @@ function ChainCard({
   ];
   const watermarkNodeIndex = Math.max(1, chain.length);
   const watermarkValue = !isConfigured || chain.length === 0 ? 0 : watermarkNodeIndex;
+
+  let totalFocusedMs = 0;
+  if (chain.focusTargetMs != null && chain.length > 0) {
+    totalFocusedMs += chain.focusTargetMs * chain.length;
+    if (chain.nodeMetadata) {
+      for (let i = 0; i < chain.length; i += 1) {
+        const meta = chain.nodeMetadata[i];
+        if (meta?.extraDurationMs) {
+          totalFocusedMs += meta.extraDurationMs;
+        }
+      }
+    }
+  }
+
+  let totalFocusLabel: string | null = null;
+  if (totalFocusedMs >= 60_000) {
+    const totalMinutes = Math.floor(totalFocusedMs / 60_000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) {
+      totalFocusLabel = `已执行契约${hours}小时${minutes}分钟`;
+    } else {
+      totalFocusLabel = `已执行契约${minutes}分钟`;
+    }
+  }
+
   return (
     <Pressable
       onPress={handlePress}
@@ -1003,19 +1029,26 @@ function ChainCard({
       >
         #{watermarkValue}
       </Text>
-      <View style={styles.chainCardTop}>
-        <Text style={styles.chainTheme} numberOfLines={1}>
-          {themeLabel}
-        </Text>
-        <ChainCountBadge
-          count={chain.length}
-          animateSuccess={animateSuccess}
-          animateBreak={animateBreak}
-        />
+      <View style={styles.chainCardHeader}>
+        <View style={styles.chainCardTop}>
+          <Text style={styles.chainTheme} numberOfLines={1}>
+            {themeLabel}
+          </Text>
+          <ChainCountBadge
+            count={chain.length}
+            animateSuccess={animateSuccess}
+            animateBreak={animateBreak}
+          />
+        </View>
+        {totalFocusLabel && (
+          <Text style={styles.chainTotalFocus}>{totalFocusLabel}</Text>
+        )}
       </View>
-      <Text style={styles.chainRules}>
-        {t('idle_chainRules', { count: String(chain.precedentRules.length) })}
-      </Text>
+      <View style={styles.chainCardFooter}>
+        <Text style={styles.chainRules}>
+          {t('idle_chainRules', { count: String(chain.precedentRules.length) })}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -1831,7 +1864,9 @@ function useIdleStyles() {
     backgroundColor: '#1E2A3A',
     borderRadius: 12,
     padding: spacing.lg,
-    justifyContent: 'space-between',
+    paddingBottom: spacing.lg * 3.1,
+    justifyContent: 'flex-start',
+    position: 'relative',
     overflow: 'hidden',
   },
   chainCardWatermark: {
@@ -1847,6 +1882,10 @@ function useIdleStyles() {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  chainCardHeader: {
+    flexShrink: 0,
+    marginBottom: spacing.lg * 2,
   },
   chainTheme: {
     ...typography.title,
@@ -1871,6 +1910,18 @@ function useIdleStyles() {
   chainRules: {
     ...typography.body,
     color: colors.textMuted,
+  },
+  chainCardFooter: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.lg,
+  },
+  chainTotalFocus: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   swipeUpPageContainer: {
     flex: 1,
