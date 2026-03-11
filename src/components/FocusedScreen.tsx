@@ -14,6 +14,8 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { PauseModal } from './PauseModal';
 
+const TIMER_RING_SIZE = 240;
+
 export function FocusedScreen() {
   const {
     chains,
@@ -71,20 +73,20 @@ export function FocusedScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
         <View style={styles.content}>
-          <Text style={styles.pauseReason} numberOfLines={4}>
+          <Text style={[styles.pauseReason, { color: themeColors.textMuted }]} numberOfLines={4}>
             {reasonText}
           </Text>
           <View style={styles.timerWrapper}>
             <CircularProgressBar
               progress={Math.min(1, (frozenElapsedMs ?? 0) / targetMs)}
-              size={220}
+              size={TIMER_RING_SIZE}
               strokeWidth={6}
               strokeColor={themeColors.accent}
             />
             {pausedTargetReached ? (
-              <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
+              <Text style={[styles.timer, { color: themeColors.text }]}>{formatMsToTime(displayElapsed)}</Text>
             ) : (
-              <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
+              <Text style={[styles.timer, { color: themeColors.text }]}>{formatMsToTime(displayRemaining)}</Text>
             )}
           </View>
         </View>
@@ -116,18 +118,18 @@ export function FocusedScreen() {
           <View style={styles.timerWrapper}>
             <CircularProgressBar
               progress={targetReached ? 1 : (targetMs - displayRemaining) / targetMs}
-              size={220}
+              size={TIMER_RING_SIZE}
               strokeWidth={6}
               strokeColor={themeColors.accent}
             />
             {targetReached ? (
-              <Text style={styles.timer}>{formatMsToTime(displayElapsed)}</Text>
+              <Text style={[styles.timer, { color: themeColors.text }]}>{formatMsToTime(displayElapsed)}</Text>
             ) : (
-              <Text style={styles.timer}>{formatMsToTime(displayRemaining)}</Text>
+              <Text style={[styles.timer, { color: themeColors.text }]}>{formatMsToTime(displayRemaining)}</Text>
             )}
           </View>
           {targetReached && (
-            <Text style={styles.extraHint}>{t('focus_extraHint')}</Text>
+            <Text style={[styles.extraHint, { color: themeColors.textMuted }]}>{t('focus_extraHint')}</Text>
           )}
         </View>
 
@@ -201,8 +203,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timerWrapper: {
-    width: 220,
-    height: 220,
+    width: TIMER_RING_SIZE,
+    height: TIMER_RING_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',

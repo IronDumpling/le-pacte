@@ -10,6 +10,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 
 const LAST_PHASE_MS = 20 * 1000;
+const TIMER_RING_SIZE = 240;
 
 export function ReservedScreen() {
   const { chains, activeChainId, reservedAt, enterFocus, timeoutReserved } =
@@ -57,7 +58,7 @@ export function ReservedScreen() {
         <View style={styles.timerWrapper}>
           <CircularProgressBar
             progress={(durationMs - remainingMs) / durationMs}
-            size={220}
+            size={TIMER_RING_SIZE}
             strokeWidth={6}
             strokeColor={isLast20Seconds ? '#FFFFFF' : themeColors.accent}
             backgroundColor={isLast20Seconds ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'}
@@ -121,8 +122,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timerWrapper: {
-    width: 220,
-    height: 220,
+    width: TIMER_RING_SIZE,
+    height: TIMER_RING_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
