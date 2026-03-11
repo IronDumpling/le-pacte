@@ -30,8 +30,8 @@ export function PauseModal({
     <Modal visible animationType="fade">
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('pause_title')}</Text>
-          <Text style={styles.subtitle}>{t('pause_subtitle')}</Text>
+          <Text style={[styles.title, { color: themeColors.text }]}>{t('pause_title')}</Text>
+          <Text style={[styles.subtitle, { color: themeColors.textMuted }]}>{t('pause_subtitle')}</Text>
         </View>
         <FlatList
           data={precedentRules}
@@ -40,18 +40,18 @@ export function PauseModal({
             <Pressable
               onPress={() => onSelect(index + 1, item.text)}
               style={({ pressed }) => [
-                styles.ruleItem,
+                [styles.ruleItem, { backgroundColor: themeColors.backgroundSecondary }],
                 pressed && styles.ruleItemPressed,
               ]}
             >
-              <Text style={styles.ruleText}>{item.text}</Text>
+              <Text style={[styles.ruleText, { color: themeColors.text }]}>{item.text}</Text>
             </Pressable>
           )}
           contentContainerStyle={styles.list}
         />
         <View style={styles.footer}>
           <Pressable onPress={onBack} style={styles.backBtn}>
-            <Text style={styles.backText}>{t('common_back')}</Text>
+            <Text style={[styles.backText, { color: themeColors.accent }]}>{t('common_back')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

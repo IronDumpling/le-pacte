@@ -87,8 +87,8 @@ export function DilemmaModal() {
     <Modal visible animationType="fade">
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
         <View style={styles.content}>
-          <Text style={styles.title}>{t('dilemma_title')}</Text>
-          <Text style={styles.subtitle}>{t('dilemma_subtitle')}</Text>
+          <Text style={[styles.title, { color: themeColors.text }]}>{t('dilemma_title')}</Text>
+          <Text style={[styles.subtitle, { color: themeColors.textMuted }]}>{t('dilemma_subtitle')}</Text>
 
           <View style={styles.options}>
             <HeavyButton
@@ -104,7 +104,7 @@ export function DilemmaModal() {
               style={styles.optionButton}
             />
             <Pressable onPress={returnToFocus} style={styles.backBtn}>
-              <Text style={styles.backText}>{t('common_back')}</Text>
+              <Text style={[styles.backText, { color: themeColors.accent }]}>{t('common_back')}</Text>
             </Pressable>
           </View>
         </View>
