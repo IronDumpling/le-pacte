@@ -39,6 +39,9 @@ import { useLocale } from '../i18n/LocaleContext';
 import { SettingsPage } from './SettingsPage';
 import type { Chain } from '../types/chain';
 import { useTypography } from '../design/typography';
+import { useFonts } from 'expo-font';
+import { getSansFontsForLocale } from '../design/fonts/sansFonts';
+import { getMonoFonts } from '../design/fonts/monoFonts';
 
 function SquareNodeIcon({
   size = 22,
@@ -1519,7 +1522,10 @@ export function IdleScreen({
     finalizeDestruction,
   } = usePacteStore();
   const { colors: themeColors } = useTheme();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  // 按需加载额外的 Noto Sans JP 和 Roboto Mono 网络字体，不阻塞首屏
+  useFonts(getSansFontsForLocale(locale, { jpOnly: true }));
+  useFonts(getMonoFonts());
 
   const [viewedIndex, setViewedIndex] = useState<number>(0);
   const [chainDetailModalChain, setChainDetailModalChain] = useState<Chain | null>(null);
