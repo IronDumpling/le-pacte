@@ -280,8 +280,8 @@ function ChainNodeRow({
               <>
                 <Text style={chainNodeStyles.detailLabel}>{t('idle_newRule')}</Text>
                 {rules.map((r) => (
-                  <Text key={r.ruleIndex} style={chainNodeStyles.detailItem}>
-                    下必为例规则第{r.ruleIndex}条：{r.text}
+                  <Text key={r.ruleIndex} style={chainNodeStyles.detailRuleItem}>
+                    第{r.ruleIndex}条，「{r.text}」
                   </Text>
                 ))}
               </>
@@ -525,6 +525,12 @@ function useChainNodeStyles() {
     fontSize: 18,
     marginBottom: spacing.xs,
   },
+  detailRuleItem: {
+    ...typography.serif.body,
+    color: colors.textMuted,
+    fontSize: 18,
+    marginBottom: spacing.xs,
+  },
   pendingRow: {
     flexDirection: 'row',
     marginTop: spacing.sm,
@@ -640,14 +646,15 @@ function ChainDetailModal({
             {rules.length === 0 ? (
               <Text style={[modalStyles.emptyRules, { color: themeColors.textMuted }]}>{t('chain_noRules')}</Text>
             ) : (
-              rules.map((r, i) => (
-                <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>
-                  <Text style={[modalStyles.ruleIndex, { color: themeColors.accent }]}>
-                    {r.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(r.nodeIndex + 1) }) : t('chain_preset')}
-                  </Text>
-                  <Text style={[modalStyles.ruleText, { color: themeColors.text }]}>{r.text}</Text>
-                </View>
-              ))
+              rules.map((r, i) => {
+                const nodePart = r.nodeIndex >= 0 ? `节点${r.nodeIndex + 1}` : '预设';
+                const line = `第${i + 1}条，添加于${nodePart}，「${r.text}」`;
+                return (
+                  <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>
+                    <Text style={[modalStyles.ruleLine, { color: themeColors.text }]}>{line}</Text>
+                  </View>
+                );
+              })
             )}
           </ScrollView>
         </Pressable>
@@ -715,13 +722,8 @@ function useModalStyles() {
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  ruleIndex: {
-    ...typography.chainLabel,
-    color: colors.accent,
-    marginBottom: spacing.xs,
-  },
-  ruleText: {
-    ...typography.body,
+  ruleLine: {
+    ...typography.serif.body,
     color: colors.text,
   },
       }),

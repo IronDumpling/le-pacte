@@ -42,17 +42,21 @@ export function PauseModal({
         <FlatList
           data={precedentRules}
           keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item, index }) => (
-            <Pressable
-              onPress={() => onSelect(index + 1, item.text)}
-              style={({ pressed }) => [
-                [styles.ruleItem, { backgroundColor: themeColors.backgroundSecondary }],
-                pressed && styles.ruleItemPressed,
-              ]}
-            >
-              <Text style={[styles.ruleText, { color: themeColors.text }]}>{item.text}</Text>
-            </Pressable>
-          )}
+          renderItem={({ item, index }) => {
+            const nodePart = item.nodeIndex >= 0 ? `节点${item.nodeIndex + 1}` : '预设';
+            const line = `第${index + 1}条，添加于${nodePart}，「${item.text}」`;
+            return (
+              <Pressable
+                onPress={() => onSelect(index + 1, item.text)}
+                style={({ pressed }) => [
+                  [styles.ruleItem, { backgroundColor: themeColors.backgroundSecondary }],
+                  pressed && styles.ruleItemPressed,
+                ]}
+              >
+                <Text style={[styles.ruleText, { color: themeColors.text }]}>{line}</Text>
+              </Pressable>
+            );
+          }}
           contentContainerStyle={styles.list}
         />
         <View style={styles.footer}>
