@@ -21,6 +21,7 @@ import Animated, {
   withSpring,
   Easing,
   interpolate,
+  interpolateColor,
   Extrapolation,
   runOnJS,
   Layout,
@@ -101,11 +102,17 @@ function ChainNodeList({
   pendingMode,
   pendingPreviewStep,
   pendingPreviewToken,
+  destructionMode = false,
+  destroyingIndex = null,
+  onDestructionStepEnd,
 }: {
   chain: Chain;
   pendingMode: 'none' | 'disconnected' | 'connectedPreview';
   pendingPreviewStep: 'idle' | 'line' | 'fadeOut' | 'number';
   pendingPreviewToken: number;
+  destructionMode?: boolean;
+  destroyingIndex?: number | null;
+  onDestructionStepEnd?: (nodeIndex: number) => void;
 }) {
   const chainNodeStyles = useChainNodeStyles();
   const { t } = useLocale();
@@ -141,6 +148,12 @@ function ChainNodeList({
       ) : (
         <>
           {nodes.map((nodeIndex) => {
+            const isDestructionActive = destructionMode && destroyingIndex !== null;
+            // 已经播放完销毁动画的节点不再渲染
+            if (isDestructionActive && destroyingIndex !== null && nodeIndex < destroyingIndex) {
+              return null;
+            }
+
             const rulesForNode = chain.precedentRules
               .map((r, i) => (r.nodeIndex === nodeIndex ? { ...r, ruleIndex: i + 1 } : null))
               .filter(Boolean) as { text: string; nodeIndex: number; ruleIndex: number }[];
@@ -158,6 +171,11 @@ function ChainNodeList({
                 animateLineBelow={isLast && pendingMode === 'connectedPreview'}
                 linePreviewStep={pendingPreviewStep}
                 linePreviewToken={pendingPreviewToken}
+                destructionMode={destructionMode}
+                isDestroying={
+                  isDestructionActive && destroyingIndex !== null && nodeIndex === destroyingIndex
+                }
+                onDestroyed={onDestructionStepEnd}
                 rules={rulesForNode}
                 focusTargetMs={focusDuration}
                 extraDurationMs={metadata?.extraDurationMs}
@@ -210,6 +228,9 @@ function ChainNodeRow({
   animateLineBelow,
   linePreviewStep,
   linePreviewToken,
+  destructionMode,
+  isDestroying,
+  onDestroyed,
   rules,
   focusTargetMs,
   extraDurationMs,
@@ -225,6 +246,9 @@ function ChainNodeRow({
   animateLineBelow?: boolean;
   linePreviewStep?: 'idle' | 'line' | 'fadeOut' | 'number';
   linePreviewToken?: number;
+  destructionMode?: boolean;
+  isDestroying?: boolean;
+  onDestroyed?: (nodeIndex: number) => void;
   rules: { text: string; ruleIndex: number }[];
   focusTargetMs: number;
   extraDurationMs?: number;
@@ -235,6 +259,7 @@ function ChainNodeRow({
   const chainNodeStyles = useChainNodeStyles();
   const { t } = useLocale();
   const lineProgress = useSharedValue(0);
+  const destructionProgressValue = useSharedValue(0);
 
   useEffect(() => {
     if (!animateLineBelow) return;
@@ -243,66 +268,127 @@ function ChainNodeRow({
     lineProgress.value = withTiming(1, { duration: 1000, easing: Easing.linear });
   }, [animateLineBelow, linePreviewStep, linePreviewToken]);
 
+  // 单个节点的销毁动画：从当前颜色过渡到红色并逐渐淡出，结束后通知上一层进入下一个节点
+  useEffect(() => {
+    if (!destructionMode || !isDestroying) {
+      destructionProgressValue.value = 0;
+      return;
+    }
+    destructionProgressValue.value = 0;
+    destructionProgressValue.value = withTiming(
+      1,
+      { duration: 1000, easing: Easing.out(Easing.quad) },
+      (finished) => {
+        if (finished && onDestroyed) {
+          runOnJS(onDestroyed)(nodeIndex);
+        }
+      }
+    );
+  }, [destructionMode, isDestroying, onDestroyed, nodeIndex]);
+
   const animatedLineStyle = useAnimatedStyle(() => {
     const h = interpolate(lineProgress.value, [0, 1], [0, 28], Extrapolation.CLAMP);
-    return { height: h };
+    const baseHeightStyle = { height: h };
+
+    if (!destructionMode) {
+      return baseHeightStyle;
+    }
+
+    const tRatio = destructionProgressValue.value;
+    const color = interpolateColor(
+      tRatio,
+      [0, 0.5, 1],
+      [colors.destructionDark, colors.destructionBase, colors.destructionLight]
+    );
+    return {
+      ...baseHeightStyle,
+      backgroundColor: color,
+    };
+  });
+
+  const destructionRowStyle = useAnimatedStyle(() => {
+    if (!destructionMode || !isDestroying) {
+      return {};
+    }
+    const p = destructionProgressValue.value;
+    const backgroundColor = interpolateColor(
+      p,
+      [0, 1],
+      ['rgba(0,0,0,0)', 'rgba(255,42,42,0.15)']
+    );
+    const opacity = 1 - p;
+    return {
+      backgroundColor,
+      opacity,
+    };
   });
 
   return (
-    <Pressable onPress={onToggle} style={chainNodeStyles.row}>
-      <View style={chainNodeStyles.chainVisual}>
-        <View style={chainNodeStyles.dotRow}>
-          <SquareNodeIcon />
-        </View>
-        {showLineBelow ? (
-          useDashedLine ? (
-            <DashedChainLine />
-          ) : animateLineBelow && linePreviewStep === 'line' ? (
-            <Animated.View style={[chainNodeStyles.chainConnector, chainNodeStyles.previewConnector, animatedLineStyle]} />
-          ) : (
-            <View style={chainNodeStyles.chainConnector} />
-          )
-        ) : null}
-      </View>
-      <View style={chainNodeStyles.details}>
-        <View style={chainNodeStyles.rowHeader}>
-          <Text style={chainNodeStyles.nodeLabel}>#{nodeIndex + 1}</Text>
-          <Text style={chainNodeStyles.expandIcon}>
-            {isExpanded ? '▲' : '▼'}
-          </Text>
-        </View>
-          {isExpanded && (
-          <View style={chainNodeStyles.expandedContent}>
-            <Text style={chainNodeStyles.detailItem}>
-              专注时长：{formatDurationAsHhMmSs(focusTargetMs + (extraDurationMs ?? 0))}
-            </Text>
-            {rules.length > 0 && (
-              <>
-                <Text style={chainNodeStyles.detailLabel}>{t('idle_newRule')}</Text>
-                {rules.map((r) => (
-                  <Text key={r.ruleIndex} style={chainNodeStyles.detailRuleItem}>
-                    第{r.ruleIndex}条，「{r.text}」
-                  </Text>
-                ))}
-              </>
-            )}
-            {pauses !== undefined && pauses.length > 0 && (
-              <>
-                <Text style={chainNodeStyles.detailLabel}>{t('idle_pause')}</Text>
-                {pauses.map((p, i) => {
-                  const atMs = 'atElapsedMs' in p ? p.atElapsedMs : ((p as { atMinute?: number }).atMinute ?? 0) * 60_000;
-                  return (
-                    <Text key={i} style={chainNodeStyles.detailItem}>
-                      在{formatElapsedToMmSs(atMs)}，暂停{formatDuration(p.durationMs)}，引用下必为例规则第{p.ruleIndex}条
-                    </Text>
-                  );
-                })}
-              </>
-            )}
+    <Animated.View style={destructionRowStyle}>
+      <Pressable onPress={onToggle} style={chainNodeStyles.row}>
+        <View style={chainNodeStyles.chainVisual}>
+          <View style={chainNodeStyles.dotRow}>
+            <SquareNodeIcon />
           </View>
-        )}
-      </View>
-    </Pressable>
+          {showLineBelow ? (
+            useDashedLine ? (
+              <DashedChainLine />
+            ) : animateLineBelow && linePreviewStep === 'line' ? (
+              <Animated.View
+                style={[
+                  chainNodeStyles.chainConnector,
+                  chainNodeStyles.previewConnector,
+                  animatedLineStyle,
+                ]}
+              />
+            ) : (
+              <View style={chainNodeStyles.chainConnector} />
+            )
+          ) : null}
+        </View>
+        <View style={chainNodeStyles.details}>
+          <View style={chainNodeStyles.rowHeader}>
+            <Text style={chainNodeStyles.nodeLabel}>#{nodeIndex + 1}</Text>
+            <Text style={chainNodeStyles.expandIcon}>
+              {isExpanded ? '▲' : '▼'}
+            </Text>
+          </View>
+          {isExpanded && (
+            <View style={chainNodeStyles.expandedContent}>
+              <Text style={chainNodeStyles.detailItem}>
+                专注时长：{formatDurationAsHhMmSs(focusTargetMs + (extraDurationMs ?? 0))}
+              </Text>
+              {rules.length > 0 && (
+                <>
+                  <Text style={chainNodeStyles.detailLabel}>{t('idle_newRule')}</Text>
+                  {rules.map((r) => (
+                    <Text key={r.ruleIndex} style={chainNodeStyles.detailRuleItem}>
+                      第{r.ruleIndex}条，「{r.text}」
+                    </Text>
+                  ))}
+                </>
+              )}
+              {pauses !== undefined && pauses.length > 0 && (
+                <>
+                  <Text style={chainNodeStyles.detailLabel}>{t('idle_pause')}</Text>
+                  {pauses.map((p, i) => {
+                    const atMs =
+                      'atElapsedMs' in p
+                        ? p.atElapsedMs
+                        : ((p as { atMinute?: number }).atMinute ?? 0) * 60_000;
+                    return (
+                      <Text key={i} style={chainNodeStyles.detailItem}>
+                        在{formatElapsedToMmSs(atMs)}，暂停{formatDuration(p.durationMs)}，引用规则第{p.ruleIndex}条
+                      </Text>
+                    );
+                  })}
+                </>
+              )}
+            </View>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -1281,7 +1367,7 @@ function useArchivedStyles() {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.destruction,
+    backgroundColor: colors.destructionBase,
     borderTopRightRadius: 12,
     borderBottomRightRadius: 12,
   },
@@ -1335,6 +1421,9 @@ export function IdleScreen({
     pinArchivedChain,
     unpinArchivedChain,
     clearIdleAnimation,
+    pendingDestructionChainId,
+    destructionStartedAt,
+    finalizeDestruction,
   } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
@@ -1349,6 +1438,41 @@ export function IdleScreen({
   const reservePreviewTimer2 = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reservePreviewTimer3 = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeChain = chains.find((c) => c.id === activeChainId);
+  const destructionChain = pendingDestructionChainId
+    ? chains.find((c) => c.id === pendingDestructionChainId) ?? null
+    : null;
+  const [destructionStep, setDestructionStep] = useState<number | null>(null);
+
+  // 当存在待销毁的链条时，控制销毁动画的启动与“中途退出后直接完成销毁”的逻辑
+  useEffect(() => {
+    if (!pendingDestructionChainId) {
+      setDestructionStep(null);
+      return;
+    }
+
+    if (!destructionChain || destructionChain.length === 0) {
+      finalizeDestruction(pendingDestructionChainId);
+      setDestructionStep(null);
+      return;
+    }
+
+    // 仅在第一次进入销毁流程时，根据时间判断是否直接完成销毁（例如应用重启或长时间离开后再次进入）
+    if (destructionStep === null) {
+      if (destructionStartedAt && Date.now() - destructionStartedAt > 5000) {
+        finalizeDestruction(pendingDestructionChainId);
+        setDestructionStep(null);
+        return;
+      }
+      // 正常情况：从最后一个节点开始依次播放销毁动画
+      setDestructionStep(0);
+    }
+  }, [
+    pendingDestructionChainId,
+    destructionChain,
+    destructionStartedAt,
+    destructionStep,
+    finalizeDestruction,
+  ]);
 
   const displayArchivedChains = useMemo(() => {
     const pinned = pinnedArchivedChainIds
@@ -1484,6 +1608,28 @@ export function IdleScreen({
       : reservePreviewChainId === item.id
         ? 'connectedPreview'
         : 'disconnected';
+
+    const isDestructionTarget = pendingDestructionChainId === item.id;
+    const nodeCountForDestruction = item.length;
+    const isDestructionActive =
+      isDestructionTarget && destructionStep !== null && nodeCountForDestruction > 0;
+    const currentDestroyingIndex =
+      isDestructionActive && destructionStep !== null
+        ? nodeCountForDestruction - 1 - destructionStep
+        : null;
+
+    const handleDestructionStepEnd = (nodeIndex: number) => {
+      if (!isDestructionActive || currentDestroyingIndex === null) return;
+      // 只响应当前正在销毁的节点回调
+      if (nodeIndex !== currentDestroyingIndex) return;
+
+      if (destructionStep !== null && destructionStep + 1 >= nodeCountForDestruction) {
+        finalizeDestruction(item.id);
+        setDestructionStep(null);
+      } else {
+        setDestructionStep((prev) => (prev === null ? null : prev + 1));
+      }
+    };
     return (
       <View style={styles.pageWrapper}>
         <SwipeUpPageWrapper
@@ -1515,6 +1661,9 @@ export function IdleScreen({
                   pendingMode={pendingMode}
                   pendingPreviewStep={reservePreviewChainId === item.id ? reservePreviewStep : 'idle'}
                   pendingPreviewToken={reservePreviewChainId === item.id ? reservePreviewToken : 0}
+                  destructionMode={isDestructionActive}
+                  destroyingIndex={currentDestroyingIndex}
+                  onDestructionStepEnd={handleDestructionStepEnd}
                 />
               ) : (
                 <View style={styles.unconfiguredPlaceholder} />
@@ -1853,7 +2002,7 @@ function useIdleStyles() {
     flex: 1,
     padding: spacing.md,
     alignItems: 'center',
-    backgroundColor: colors.destruction,
+    backgroundColor: colors.destructionBase,
     borderRadius: 8,
   },
   deleteModalConfirmText: {

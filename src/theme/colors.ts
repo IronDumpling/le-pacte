@@ -10,7 +10,9 @@ export type Colors = {
   focusBackground: string;
   primary: string;
   accent: string;
-  destruction: string;
+  destructionBase: string;
+  destructionLight: string;
+  destructionDark: string;
   success: string;
   text: string;
   textMuted: string;
@@ -22,7 +24,9 @@ export const darkColors: Colors = {
   focusBackground: '#1a3d1a',
   primary: '#4A6FA5',
   accent: '#7B8FA1',
-  destruction: '#FF3B30',
+  destructionBase: '#FF2A2A',
+  destructionLight: '#FF4B4B',
+  destructionDark: '#CC0000',
   success: '#34C759',
   text: '#FFFFFF',
   textMuted: '#8E8E93',
@@ -34,7 +38,9 @@ export const lightColors: Colors = {
   focusBackground: '#d4ecd4',
   primary: '#2E5A8A',
   accent: '#5A6F7F',
-  destruction: '#FF3B30',
+  destructionBase: '#FF2A2A',
+  destructionLight: '#FF4B4B',
+  destructionDark: '#CC0000',
   success: '#34C759',
   text: '#000000',
   textMuted: '#6C6C70',

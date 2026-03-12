@@ -22,9 +22,9 @@ interface HeavyButtonProps {
 }
 
 const variantColors = {
-  primary: '#4A6FA5',
-  destruction: '#FF3B30',
-  secondary: '#7B8FA1',
+  primary: colors.primary,
+  destruction: colors.destructionBase,
+  secondary: colors.accent,
 };
 
 export function HeavyButton({

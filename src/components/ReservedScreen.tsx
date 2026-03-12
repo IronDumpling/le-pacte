@@ -45,7 +45,7 @@ export function ReservedScreen() {
       style={[
         styles.container,
         { backgroundColor: themeColors.background },
-        isLast20Seconds && { backgroundColor: themeColors.destruction },
+        isLast20Seconds && { backgroundColor: themeColors.destructionBase },
       ]}
       edges={['top', 'bottom']}
     >
@@ -118,7 +118,7 @@ const makeStyles = (typography: ReturnType<typeof useTypography>) =>
     justifyContent: 'space-between',
   },
   containerRed: {
-    backgroundColor: colors.destruction,
+    backgroundColor: colors.destructionBase,
   },
   content: {
     flex: 1,

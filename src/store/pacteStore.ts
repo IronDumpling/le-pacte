@@ -31,6 +31,8 @@ interface PacteState {
   pauseReason: PauseReason | null;
   currentSessionPauses: SessionPause[];
   lastIdleAnimation: IdleAnimationType;
+  pendingDestructionChainId: string | null;
+  destructionStartedAt: number | null;
   _hydrated: boolean;
 }
 
@@ -51,6 +53,7 @@ interface PacteActions {
   triggerDilemma: () => void;
   triggerPause: (ruleIndex: number, ruleText: string) => void;
   chooseDestruction: () => void;
+  finalizeDestruction: (chainId: string) => void;
   chooseCompromise: (exceptionText: string) => void;
   returnToFocus: () => void;
   resumeFromPause: () => void;
@@ -80,6 +83,8 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   pauseReason: null,
   currentSessionPauses: [],
   lastIdleAnimation: null,
+  pendingDestructionChainId: null,
+  destructionStartedAt: null,
   _hydrated: false,
 
   hydrate: async () => {
@@ -358,19 +363,31 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   },
 
   chooseDestruction: () => {
-    const { currentState, chains, activeChainId } = get();
+    const { currentState, activeChainId } = get();
     if (currentState !== 'DILEMMA' || !activeChainId) return;
-    const next = chains.map((c) =>
-      c.id === activeChainId
-        ? { ...c, length: 0, precedentRules: [] }
-        : c
-    );
+    const now = Date.now();
     set({
       currentState: 'IDLE',
-      chains: next,
       frozenElapsedMs: null,
       currentSessionPauses: [],
       lastIdleAnimation: 'break',
+      pendingDestructionChainId: activeChainId,
+      destructionStartedAt: now,
+    });
+  },
+
+  finalizeDestruction: (chainId: string) => {
+    const { chains, pendingDestructionChainId } = get();
+    if (!pendingDestructionChainId || pendingDestructionChainId !== chainId) {
+      return;
+    }
+    const next = chains.map((c) =>
+      c.id === chainId ? { ...c, length: 0, precedentRules: [], nodeMetadata: undefined } : c
+    );
+    set({
+      chains: next,
+      pendingDestructionChainId: null,
+      destructionStartedAt: null,
     });
     persistChains(next);
   },
