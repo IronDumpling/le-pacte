@@ -13,6 +13,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import Animated, {
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -306,21 +307,59 @@ function ChainNodeRow({
     };
   });
 
+  // 整行：前半段保持不透明，后半段淡出
   const destructionRowStyle = useAnimatedStyle(() => {
+    if (!destructionMode || !isDestroying) {
+      return {};
+    }
+    const p = destructionProgressValue.value;
+    const opacity = p <= 0.5 ? 1 : interpolate(p, [0.5, 1], [1, 0], Extrapolation.CLAMP);
+    return { opacity };
+  });
+
+  // 节点方块：蓝 → 亮红 → 暗红（使用 theme 红色），0.5 之后保持暗红，整行再淡出
+  const animatedNodeSquareStyle = useAnimatedStyle(() => {
+    if (!destructionMode || !isDestroying) {
+      return {};
+    }
+    const p = destructionProgressValue.value;
+    const borderColor = interpolateColor(
+      p,
+      [0, 0.25, 0.5, 1],
+      [
+        colors.primary,
+        colors.destructionLight,
+        colors.destructionDark,
+        colors.destructionDark,
+      ]
+    );
+    return {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor,
+      backgroundColor: 'transparent',
+    };
+  });
+
+  // 当前节点变红时，该节点下方的连线也同步变红
+  const destructionConnectorStyle = useAnimatedStyle(() => {
     if (!destructionMode || !isDestroying) {
       return {};
     }
     const p = destructionProgressValue.value;
     const backgroundColor = interpolateColor(
       p,
-      [0, 1],
-      ['rgba(0,0,0,0)', 'rgba(255,42,42,0.15)']
+      [0, 0.25, 0.5, 1],
+      [
+        colors.accent,
+        colors.destructionLight,
+        colors.destructionDark,
+        colors.destructionDark,
+      ]
     );
-    const opacity = 1 - p;
-    return {
-      backgroundColor,
-      opacity,
-    };
+    return { backgroundColor };
   });
 
   return (
@@ -328,11 +367,22 @@ function ChainNodeRow({
       <Pressable onPress={onToggle} style={chainNodeStyles.row}>
         <View style={chainNodeStyles.chainVisual}>
           <View style={chainNodeStyles.dotRow}>
-            <SquareNodeIcon />
+            {destructionMode && isDestroying ? (
+              <Animated.View style={animatedNodeSquareStyle} />
+            ) : (
+              <SquareNodeIcon />
+            )}
           </View>
           {showLineBelow ? (
             useDashedLine ? (
               <DashedChainLine />
+            ) : destructionMode && isDestroying ? (
+              <Animated.View
+                style={[
+                  chainNodeStyles.chainConnector,
+                  destructionConnectorStyle,
+                ]}
+              />
             ) : animateLineBelow && linePreviewStep === 'line' ? (
               <Animated.View
                 style={[
@@ -822,6 +872,18 @@ interface IdleScreenProps {
   animateBreak?: boolean;
 }
 
+function runShake(translateX: SharedValue<number>) {
+  translateX.value = withSequence(
+    withTiming(-8, { duration: 40 }),
+    withTiming(8, { duration: 40 }),
+    withTiming(-12, { duration: 60 }),
+    withTiming(12, { duration: 60 }),
+    withTiming(-6, { duration: 50 }),
+    withTiming(6, { duration: 50 }),
+    withTiming(0, { duration: 80 })
+  );
+}
+
 function ChainCountBadge({
   count,
   animateSuccess,
@@ -850,15 +912,7 @@ function ChainCountBadge({
 
   useEffect(() => {
     if (animateBreak) {
-      translateX.value = withSequence(
-        withTiming(-8, { duration: 40 }),
-        withTiming(8, { duration: 40 }),
-        withTiming(-12, { duration: 60 }),
-        withTiming(12, { duration: 60 }),
-        withTiming(-6, { duration: 50 }),
-        withTiming(6, { duration: 50 }),
-        withTiming(0, { duration: 80 })
-      );
+      runShake(translateX);
       opacity.value = withSequence(
         withTiming(0.8, { duration: 150 }),
         withTiming(0.2, { duration: 200 }),
@@ -1049,6 +1103,8 @@ function ChainCard({
   isConfigured,
   animateSuccess,
   animateBreak,
+  destructionFlashTrigger,
+  displayCount,
   onSelect,
   onShowDetail,
   cornerRadius,
@@ -1058,6 +1114,9 @@ function ChainCard({
   isConfigured: boolean;
   animateSuccess?: boolean;
   animateBreak?: boolean;
+  destructionFlashTrigger?: number;
+  /** 播放销毁动画时传入，用于 header 显示逐次减一的长度 */
+  displayCount?: number;
   onSelect: () => void;
   onShowDetail?: () => void;
   cornerRadius?: number;
@@ -1065,6 +1124,24 @@ function ChainCard({
   const styles = useIdleStyles();
   const { t } = useLocale();
   const themeLabel = chain.theme || t('idle_defaultTheme');
+  const cardFlashProgress = useSharedValue(0);
+  const prevFlashTrigger = useRef(0);
+
+  useEffect(() => {
+    if (
+      destructionFlashTrigger != null &&
+      destructionFlashTrigger > 0 &&
+      destructionFlashTrigger !== prevFlashTrigger.current
+    ) {
+      prevFlashTrigger.current = destructionFlashTrigger;
+      cardFlashProgress.value = 0;
+      cardFlashProgress.value = withSequence(
+        withTiming(1, { duration: 80, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: 220, easing: Easing.inOut(Easing.quad) })
+      );
+    }
+  }, [destructionFlashTrigger, cardFlashProgress]);
+
   const handlePress = () => {
     if (isConfigured && onShowDetail) {
       onShowDetail();
@@ -1078,6 +1155,21 @@ function ChainCard({
   ];
   const watermarkNodeIndex = Math.max(1, chain.length);
   const watermarkValue = !isConfigured || chain.length === 0 ? 0 : watermarkNodeIndex;
+
+  const animatedFlashOverlayStyle = useAnimatedStyle(() => {
+    const p = cardFlashProgress.value;
+    const opacity = interpolate(p, [0, 1], [0, 0.5], Extrapolation.CLAMP);
+    return {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      backgroundColor: colors.destructionBase,
+      opacity,
+      borderRadius: cornerRadius ?? 12,
+    };
+  });
 
   let totalFocusedMs = 0;
   if (chain.focusTargetMs != null && chain.length > 0) {
@@ -1105,10 +1197,11 @@ function ChainCard({
   }
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={cardStyle}
-    >
+    <Pressable onPress={handlePress} style={cardStyle}>
+      <Animated.View
+        style={animatedFlashOverlayStyle}
+        pointerEvents="none"
+      />
       <Text
         style={styles.chainCardWatermark}
         pointerEvents="none"
@@ -1123,7 +1216,7 @@ function ChainCard({
             {themeLabel}
           </Text>
           <ChainCountBadge
-            count={chain.length}
+            count={displayCount ?? chain.length}
             animateSuccess={animateSuccess}
             animateBreak={animateBreak}
           />
@@ -1442,6 +1535,7 @@ export function IdleScreen({
     ? chains.find((c) => c.id === pendingDestructionChainId) ?? null
     : null;
   const [destructionStep, setDestructionStep] = useState<number | null>(null);
+  const [destructionFlashTrigger, setDestructionFlashTrigger] = useState(0);
 
   // 当存在待销毁的链条时，控制销毁动画的启动与“中途退出后直接完成销毁”的逻辑
   useEffect(() => {
@@ -1623,6 +1717,9 @@ export function IdleScreen({
       // 只响应当前正在销毁的节点回调
       if (nodeIndex !== currentDestroyingIndex) return;
 
+      // 每个节点消失时触发 header 数字晃动 + 背景闪红
+      setDestructionFlashTrigger((t) => t + 1);
+
       if (destructionStep !== null && destructionStep + 1 >= nodeCountForDestruction) {
         finalizeDestruction(item.id);
         setDestructionStep(null);
@@ -1647,6 +1744,14 @@ export function IdleScreen({
                 }
                 animateBreak={
                   item.id === activeChainId ? animateBreak : undefined
+                }
+                destructionFlashTrigger={
+                  isDestructionTarget && isDestructionActive ? destructionFlashTrigger : undefined
+                }
+                displayCount={
+                  isDestructionTarget && isDestructionActive && destructionStep !== null
+                    ? nodeCountForDestruction - destructionStep
+                    : undefined
                 }
                 onSelect={() => handleChainSelect(item)}
                 onShowDetail={isConfigured ? () => setChainDetailModalChain(item) : undefined}
