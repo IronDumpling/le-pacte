@@ -7,7 +7,6 @@ import { LocaleProvider } from '../src/i18n/LocaleContext';
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     // Roboto Mono - numeric / technical labels
-    RobotoMono_400Regular: require('../assets/fonts/robot_mono/RobotoMono-Regular.ttf'),
     RobotoMono_600SemiBold: require('../assets/fonts/robot_mono/RobotoMono-SemiBold.ttf'),
     RobotoMono_700Bold: require('../assets/fonts/robot_mono/RobotoMono-Bold.ttf'),
     // Noto Sans SC/JP - general UI text
