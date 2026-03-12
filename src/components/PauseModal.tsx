@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PrecedentRule } from '../types/chain';
-import { colors, typography, spacing } from '../design/theme';
+import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
+import { useTypography } from '../design/typography';
 
 interface PauseModalProps {
   precedentRules: PrecedentRule[];
@@ -26,6 +27,11 @@ export function PauseModal({
 }: PauseModalProps) {
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
+  const typography = useTypography();
+  const styles = useMemo(
+    () => makeStyles(themeColors, typography),
+    [themeColors, typography]
+  );
   return (
     <Modal visible animationType="fade">
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
@@ -36,17 +42,21 @@ export function PauseModal({
         <FlatList
           data={precedentRules}
           keyExtractor={(_, i) => i.toString()}
-          renderItem={({ item, index }) => (
-            <Pressable
-              onPress={() => onSelect(index + 1, item.text)}
-              style={({ pressed }) => [
-                [styles.ruleItem, { backgroundColor: themeColors.backgroundSecondary }],
-                pressed && styles.ruleItemPressed,
-              ]}
-            >
-              <Text style={[styles.ruleText, { color: themeColors.text }]}>{item.text}</Text>
-            </Pressable>
-          )}
+          renderItem={({ item, index }) => {
+            const nodePart = item.nodeIndex >= 0 ? `节点${item.nodeIndex + 1}` : '预设';
+            const line = `第${index + 1}条，添加于${nodePart}，「${item.text}」`;
+            return (
+              <Pressable
+                onPress={() => onSelect(index + 1, item.text)}
+                style={({ pressed }) => [
+                  [styles.ruleItem, { backgroundColor: themeColors.backgroundSecondary }],
+                  pressed && styles.ruleItemPressed,
+                ]}
+              >
+                <Text style={[styles.ruleText, { color: themeColors.text }]}>{line}</Text>
+              </Pressable>
+            );
+          }}
           contentContainerStyle={styles.list}
         />
         <View style={styles.footer}>
@@ -59,51 +69,54 @@ export function PauseModal({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    padding: spacing.xl,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.backgroundSecondary,
-  },
-  title: {
-    ...typography.title,
-    color: colors.text,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginTop: spacing.sm,
-  },
-  list: {
-    padding: spacing.xl,
-  },
-  ruleItem: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 8,
-    padding: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  ruleItemPressed: {
-    opacity: 0.8,
-  },
-  ruleText: {
-    ...typography.body,
-    color: colors.text,
-  },
-  footer: {
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  backBtn: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-  },
-  backText: {
-    ...typography.body,
-    color: colors.accent,
-  },
-});
+const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      padding: spacing.xl,
+      borderBottomWidth: 1,
+      borderBottomColor: themeColors.backgroundSecondary,
+    },
+    title: {
+      // Precedent selection is part of "case law" → use serif
+      ...typography.serif.title,
+      color: colors.text,
+    },
+    subtitle: {
+      ...typography.serif.subtitle,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+    },
+    list: {
+      padding: spacing.xl,
+    },
+    ruleItem: {
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: 8,
+      padding: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    ruleItemPressed: {
+      opacity: 0.8,
+    },
+    ruleText: {
+      ...typography.serif.body,
+      color: colors.text,
+    },
+    footer: {
+      padding: spacing.xl,
+      alignItems: 'center',
+    },
+    backBtn: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xl,
+    },
+    backText: {
+      // Back button is a general control → keep sans body
+      ...typography.body,
+      color: colors.accent,
+    },
+  });

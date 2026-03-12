@@ -58,7 +58,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_placeholder: '例如：中途拿快递',
     dilemma_writeRule: '写入下必为例规则',
     dilemma_admitFailure: '承认失败，粉碎当前契约链',
-    dilemma_allowException: '允许本次违规，下必为例',
+    dilemma_admitFailureDestroy: '失败，摧毁长度{n}的契约链',
+    dilemma_allowException: '允许本次违规，但下必为例',
 
     locked_confirm: '确定',
     save_confirmTitle: '确认保存？',
@@ -155,6 +156,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_placeholder: 'e.g. picking up a package',
     dilemma_writeRule: 'Add precedent rule',
     dilemma_admitFailure: 'Admit failure, break chain',
+    dilemma_admitFailureDestroy: 'Admit failure (destroy chain of length {n})',
     dilemma_allowException: 'Allow this exception',
 
     locked_confirm: 'OK',
@@ -252,6 +254,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_placeholder: 'ex. aller chercher un colis',
     dilemma_writeRule: 'Ajouter une règle de précédent',
     dilemma_admitFailure: 'Reconnaître l\'échec, rompre la chaîne',
+    dilemma_admitFailureDestroy: 'Reconnaître l\'échec (détruira une chaîne de longueur {n})',
     dilemma_allowException: 'Autoriser cette exception',
 
     locked_confirm: 'OK',
@@ -349,6 +352,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_placeholder: '例：宅配便を受け取る',
     dilemma_writeRule: '先例ルールを追加',
     dilemma_admitFailure: '失敗を認め、チェーンを破棄',
+    dilemma_admitFailureDestroy: '失敗を認める（長さ{n}の契約チェーンを破棄）',
     dilemma_allowException: '今回の違反を許可',
 
     locked_confirm: 'OK',

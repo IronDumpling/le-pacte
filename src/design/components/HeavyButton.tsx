@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { colors, spacing, typography, shadows } from '../theme';
+import { colors, spacing, shadows } from '../theme';
+import { useTypography } from '../typography';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -37,6 +38,8 @@ export function HeavyButton({
   disabled = false,
 }: HeavyButtonProps) {
   const scale = useSharedValue(1);
+  const typography = useTypography();
+  const styles = useMemo(() => makeStyles(typography), [typography]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -73,7 +76,8 @@ export function HeavyButton({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
   button: {
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,

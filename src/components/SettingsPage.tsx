@@ -4,7 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
-import { spacing, typography } from '../design/theme';
+import { spacing } from '../design/theme';
+import { useTypography } from '../design/typography';
 import type { ColorScheme } from '../storage/storage';
 import type { Locale } from '../storage/storage';
 
@@ -26,8 +27,9 @@ const LOCALE_OPTIONS: { value: Locale; labelKey: string; flag: string }[] = [
 export function SettingsPage() {
   const { colors, colorScheme, setColorScheme } = useTheme();
   const { locale, setLocale, t } = useLocale();
+  const typography = useTypography();
 
-  const styles = createStyles(colors);
+  const styles = React.useMemo(() => createStyles(colors, typography), [colors, typography]);
 
   return (
     <View style={styles.container}>
@@ -114,13 +116,16 @@ export function SettingsPage() {
   );
 }
 
-function createStyles(colors: {
+function createStyles(
+  colors: {
   background: string;
   backgroundSecondary: string;
   text: string;
   textMuted: string;
   primary: string;
-}) {
+},
+  typography: ReturnType<typeof useTypography>
+) {
   return StyleSheet.create({
     container: {
       flex: 1,

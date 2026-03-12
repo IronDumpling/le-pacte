@@ -3,12 +3,20 @@ import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePacteStore } from '../src/store/pacteStore';
-import { colors, typography, spacing } from '../src/design/theme';
+import { colors, spacing } from '../src/design/theme';
+import { useTheme } from '../src/theme/ThemeContext';
+import { useTypography } from '../src/design/typography';
 
 export default function PrecedentRulesScreen() {
   const router = useRouter();
   const { chainId } = useLocalSearchParams<{ chainId: string }>();
   const { chains } = usePacteStore();
+  const { colors: themeColors } = useTheme();
+  const typography = useTypography();
+  const styles = React.useMemo(
+    () => createStyles(themeColors, typography),
+    [themeColors, typography]
+  );
 
   const chain = chains.find((c) => c.id === chainId);
   const rules = chain?.precedentRules ?? [];
@@ -50,28 +58,31 @@ export default function PrecedentRulesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(themeColors: any, typography: ReturnType<typeof useTypography>) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: themeColors.background,
   },
   header: {
     padding: spacing.xl,
     borderBottomWidth: 1,
-    borderBottomColor: colors.backgroundSecondary,
+    borderBottomColor: themeColors.backgroundSecondary,
   },
   backText: {
+    // Navigation control → keep sans body
     ...typography.body,
-    color: colors.accent,
+    color: themeColors.accent,
     marginBottom: spacing.md,
   },
   title: {
-    ...typography.title,
-    color: colors.text,
+    // Precedent rules are "case law" → serif
+    ...typography.serif.title,
+    color: themeColors.text,
   },
   subtitle: {
-    ...typography.body,
-    color: colors.textMuted,
+    ...typography.serif.subtitle,
+    color: themeColors.textMuted,
     marginTop: spacing.sm,
   },
   empty: {
@@ -81,30 +92,31 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   emptyText: {
-    ...typography.title,
-    color: colors.textMuted,
+    ...typography.serif.title,
+    color: themeColors.textMuted,
   },
   emptyHint: {
-    ...typography.body,
-    color: colors.textMuted,
+    ...typography.serif.body,
+    color: themeColors.textMuted,
     marginTop: spacing.sm,
   },
   list: {
     padding: spacing.xl,
   },
   item: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: themeColors.backgroundSecondary,
     borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
   itemIndex: {
     ...typography.chainLabel,
-    color: colors.accent,
+    color: themeColors.accent,
     marginBottom: spacing.xs,
   },
   itemText: {
-    ...typography.body,
-    color: colors.text,
+    ...typography.serif.body,
+    color: themeColors.text,
   },
-});
+  });
+}

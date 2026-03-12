@@ -22,8 +22,9 @@ import {
   SaveConfirmModal,
 } from '../src/design/components';
 import { RESERVATION_OPTIONS } from '../src/types/chain';
-import { colors, typography, spacing } from '../src/design/theme';
+import { colors, spacing } from '../src/design/theme';
 import { useTheme } from '../src/theme/ThemeContext';
+import { useTypography } from '../src/design/typography';
 
 const ITEM_HEIGHT = 56;
 const PICKER_VISIBLE_ITEMS = 5;
@@ -71,9 +72,13 @@ export default function ChainSettingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { chains, updateChain, addPrecedentRule } = usePacteStore();
   const { colors: themeColors } = useTheme();
+  const typography = useTypography();
 
   const chain = chains.find((c) => c.id === id);
-  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const styles = useMemo(
+    () => createStyles(themeColors, typography),
+    [themeColors, typography]
+  );
   const [currentStep, setCurrentStep] = useState(0);
   const [theme, setTheme] = useState(chain?.theme ?? '专注');
   const [triggerRitual, setTriggerRitual] = useState(
@@ -610,7 +615,10 @@ export default function ChainSettingsScreen() {
   );
 }
 
-function createStyles(c: { background: string; backgroundSecondary: string; text: string; textMuted: string; accent: string; primary: string }) {
+function createStyles(
+  c: { background: string; backgroundSecondary: string; text: string; textMuted: string; accent: string; primary: string },
+  typography: ReturnType<typeof useTypography>
+) {
   return StyleSheet.create({
   container: {
     flex: 1,
@@ -739,7 +747,8 @@ function createStyles(c: { background: string; backgroundSecondary: string; text
     marginBottom: spacing.md,
   },
   rulesHint: {
-    ...typography.body,
+    // Explain precedence principle → serif body
+    ...typography.serif.body,
     color: c.textMuted,
     marginBottom: spacing.lg,
   },
@@ -750,7 +759,8 @@ function createStyles(c: { background: string; backgroundSecondary: string; text
     marginBottom: spacing.sm,
   },
   ruleItemText: {
-    ...typography.body,
+    // Actual rule text → serif body
+    ...typography.serif.body,
     color: c.text,
   },
   addRuleBox: {
@@ -798,12 +808,13 @@ function createStyles(c: { background: string; backgroundSecondary: string; text
     padding: spacing.xl,
   },
   addRuleTitle: {
-    ...typography.title,
+    // "Add precedent rule" heading → serif
+    ...typography.serif.title,
     color: c.text,
     marginBottom: spacing.sm,
   },
   addRuleSubtitle: {
-    ...typography.body,
+    ...typography.serif.body,
     color: c.textMuted,
     marginBottom: spacing.lg,
   },

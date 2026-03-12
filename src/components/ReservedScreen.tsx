@@ -1,13 +1,14 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton, CircularProgressBar } from '../design/components';
 import { useReservedCountdown, formatMsToTime } from '../hooks/useTimer';
-import { colors, typography, spacing } from '../design/theme';
+import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
+import { useTypography } from '../design/typography';
 
 const LAST_PHASE_MS = 20 * 1000;
 const TIMER_RING_SIZE = 240;
@@ -17,6 +18,8 @@ export function ReservedScreen() {
     usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
+  const typography = useTypography();
+  const styles = useMemo(() => makeStyles(typography), [typography]);
 
   const chain = chains.find((c) => c.id === activeChainId);
   const durationMs = chain?.reservationDurationMs ?? 15 * 60 * 1000;
@@ -107,7 +110,8 @@ export function ReservedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -31,13 +31,42 @@ import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
-import { colors, spacing, typography } from '../design/theme';
+import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { SettingsPage } from './SettingsPage';
 import type { Chain } from '../types/chain';
+import { useTypography } from '../design/typography';
+
+function SquareNodeIcon({
+  size = 22,
+  stroke = colors.accent,
+  strokeWidth = 2,
+  radius = 6,
+  fill = 'transparent',
+}: {
+  size?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  radius?: number;
+  fill?: string;
+}) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        borderWidth: strokeWidth,
+        borderColor: stroke,
+        backgroundColor: fill,
+      }}
+    />
+  );
+}
 
 function DashedChainLine({ style }: { style?: object }) {
+  const chainNodeStyles = useChainNodeStyles();
   const dashHeight = 2;
   const segmentCount = 10;
   return (
@@ -46,7 +75,7 @@ function DashedChainLine({ style }: { style?: object }) {
         <View
           key={i}
           style={[
-            chainNodeStyles.chainLine,
+            chainNodeStyles.chainConnector,
             chainNodeStyles.dashedSegment,
             { marginBottom: i < segmentCount - 1 ? 1 : 0 },
           ]}
@@ -69,16 +98,25 @@ function formatDurationAsHhMmSs(ms: number): string {
 
 function ChainNodeList({
   chain,
-  showPendingNode,
+  pendingMode,
+  pendingPreviewStep,
+  pendingPreviewToken,
 }: {
   chain: Chain;
-  showPendingNode: boolean;
+  pendingMode: 'none' | 'disconnected' | 'connectedPreview';
+  pendingPreviewStep: 'idle' | 'line' | 'fadeOut' | 'number';
+  pendingPreviewToken: number;
 }) {
+  const chainNodeStyles = useChainNodeStyles();
   const { t } = useLocale();
   const [expandedSet, setExpandedSet] = useState<Set<number>>(new Set());
   const focusDuration = chain.focusTargetMs ?? 0;
 
   const nodes = Array.from({ length: chain.length }).map((_, i) => i);
+  const showPendingNode = pendingMode !== 'none';
+  const pendingLabelBase = t('idle_pending');
+  const pendingNodeNumberLabel = `#${chain.length + 1}`;
+  const pendingShowLineAbove = pendingMode === 'connectedPreview';
 
   useEffect(() => {
     setExpandedSet(
@@ -115,8 +153,11 @@ function ChainNodeList({
                 nodeIndex={nodeIndex}
                 isFirst={nodeIndex === 0}
                 isLast={isLast}
-                showLineBelow={!isLast || showPendingNode}
-                useDashedLine={isLast && showPendingNode}
+                showLineBelow={!isLast || pendingMode === 'connectedPreview'}
+                useDashedLine={false}
+                animateLineBelow={isLast && pendingMode === 'connectedPreview'}
+                linePreviewStep={pendingPreviewStep}
+                linePreviewToken={pendingPreviewToken}
                 rules={rulesForNode}
                 focusTargetMs={focusDuration}
                 extraDurationMs={metadata?.extraDurationMs}
@@ -136,7 +177,11 @@ function ChainNodeList({
           {showPendingNode && (
             <PendingNodeDot
               hasNodesAbove={chain.length > 0}
-              useDashedLine={chain.length > 0}
+              showLineAbove={pendingShowLineAbove}
+              baseLabel={pendingLabelBase}
+              nodeNumberLabel={pendingNodeNumberLabel}
+              previewStep={pendingMode === 'connectedPreview' ? pendingPreviewStep : 'idle'}
+              previewToken={pendingPreviewToken}
             />
           )}
         </>
@@ -162,6 +207,9 @@ function ChainNodeRow({
   isFirst,
   showLineBelow,
   useDashedLine,
+  animateLineBelow,
+  linePreviewStep,
+  linePreviewToken,
   rules,
   focusTargetMs,
   extraDurationMs,
@@ -174,6 +222,9 @@ function ChainNodeRow({
   isLast?: boolean;
   showLineBelow: boolean;
   useDashedLine?: boolean;
+  animateLineBelow?: boolean;
+  linePreviewStep?: 'idle' | 'line' | 'fadeOut' | 'number';
+  linePreviewToken?: number;
   rules: { text: string; ruleIndex: number }[];
   focusTargetMs: number;
   extraDurationMs?: number;
@@ -181,19 +232,37 @@ function ChainNodeRow({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const chainNodeStyles = useChainNodeStyles();
   const { t } = useLocale();
+  const lineProgress = useSharedValue(0);
+
+  useEffect(() => {
+    if (!animateLineBelow) return;
+    if (linePreviewStep !== 'line') return;
+    lineProgress.value = 0;
+    lineProgress.value = withTiming(1, { duration: 1000, easing: Easing.linear });
+  }, [animateLineBelow, linePreviewStep, linePreviewToken]);
+
+  const animatedLineStyle = useAnimatedStyle(() => {
+    const h = interpolate(lineProgress.value, [0, 1], [0, 28], Extrapolation.CLAMP);
+    return { height: h };
+  });
+
   return (
     <Pressable onPress={onToggle} style={chainNodeStyles.row}>
       <View style={chainNodeStyles.chainVisual}>
         <View style={chainNodeStyles.dotRow}>
-          <View style={chainNodeStyles.chainDot} />
+          <SquareNodeIcon />
         </View>
-        {showLineBelow &&
-          (useDashedLine ? (
+        {showLineBelow ? (
+          useDashedLine ? (
             <DashedChainLine />
+          ) : animateLineBelow && linePreviewStep === 'line' ? (
+            <Animated.View style={[chainNodeStyles.chainConnector, chainNodeStyles.previewConnector, animatedLineStyle]} />
           ) : (
-            <View style={chainNodeStyles.chainLine} />
-          ))}
+            <View style={chainNodeStyles.chainConnector} />
+          )
+        ) : null}
       </View>
       <View style={chainNodeStyles.details}>
         <View style={chainNodeStyles.rowHeader}>
@@ -211,8 +280,8 @@ function ChainNodeRow({
               <>
                 <Text style={chainNodeStyles.detailLabel}>{t('idle_newRule')}</Text>
                 {rules.map((r) => (
-                  <Text key={r.ruleIndex} style={chainNodeStyles.detailItem}>
-                    下必为例规则第{r.ruleIndex}条：{r.text}
+                  <Text key={r.ruleIndex} style={chainNodeStyles.detailRuleItem}>
+                    第{r.ruleIndex}条，「{r.text}」
                   </Text>
                 ))}
               </>
@@ -239,16 +308,28 @@ function ChainNodeRow({
 
 function PendingNodeDot({
   hasNodesAbove,
-  useDashedLine,
+  showLineAbove,
+  baseLabel,
+  nodeNumberLabel,
+  previewStep,
+  previewToken,
 }: {
   hasNodesAbove: boolean;
-  useDashedLine?: boolean;
+  showLineAbove: boolean;
+  baseLabel: string;
+  nodeNumberLabel: string;
+  previewStep: 'idle' | 'line' | 'fadeOut' | 'number';
+  previewToken: number;
 }) {
-  const { t } = useLocale();
-  const dotScale = useSharedValue(1);
+  const chainNodeStyles = useChainNodeStyles();
+  const [displayLabel, setDisplayLabel] = useState(baseLabel);
+  const nodeScale = useSharedValue(1);
+  const lineProgress = useSharedValue(0);
+  const labelOpacity = useSharedValue(1);
+  const labelFontSize = useSharedValue(20);
 
   useEffect(() => {
-    dotScale.value = withRepeat(
+    nodeScale.value = withRepeat(
       withSequence(
         withTiming(1.2, { duration: 400, easing: Easing.out(Easing.ease) }),
         withTiming(1, { duration: 400, easing: Easing.in(Easing.ease) })
@@ -258,34 +339,102 @@ function PendingNodeDot({
     );
   }, []);
 
-  const dotStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: dotScale.value }],
+  const nodeScaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: nodeScale.value }],
+  }));
+
+  useEffect(() => {
+    if (previewStep === 'idle') {
+      setDisplayLabel(baseLabel);
+      lineProgress.value = 0;
+      labelOpacity.value = 1;
+      labelFontSize.value = 20;
+      return;
+    }
+
+    if (previewStep === 'line') {
+      setDisplayLabel(baseLabel);
+      lineProgress.value = 0;
+      labelOpacity.value = 1;
+      labelFontSize.value = 20;
+      lineProgress.value = withTiming(1, { duration: 1000, easing: Easing.linear });
+      return;
+    }
+
+    if (previewStep === 'fadeOut') {
+      labelOpacity.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.quad) });
+      return;
+    }
+
+    if (previewStep === 'number') {
+      // Ensure we swap text near the start of the "number" step.
+      setDisplayLabel(nodeNumberLabel);
+      labelOpacity.value = withTiming(1, { duration: 180 });
+      labelFontSize.value = 20;
+      labelFontSize.value = withSequence(
+        withTiming(24, { duration: 150, easing: Easing.out(Easing.quad) }),
+        withTiming(20, { duration: 180, easing: Easing.out(Easing.quad) })
+      );
+    }
+  }, [baseLabel, nodeNumberLabel, previewStep, previewToken]);
+
+  const animatedTopLineStyle = useAnimatedStyle(() => {
+    const h = interpolate(lineProgress.value, [0, 1], [0, 28], Extrapolation.CLAMP);
+    return { height: h };
+  });
+
+  const animatedLabelStyle = useAnimatedStyle(() => ({
+    opacity: labelOpacity.value,
+    fontSize: previewStep === 'number' ? labelFontSize.value : undefined,
   }));
 
   return (
-    <View style={chainNodeStyles.pendingRow}>
-      <View style={chainNodeStyles.pendingChainVisual}>
-        {hasNodesAbove &&
-          (useDashedLine ? (
-            <DashedChainLine />
+    <View style={chainNodeStyles.row}>
+      <View style={chainNodeStyles.chainVisual}>
+        {hasNodesAbove && showLineAbove ? (
+          previewStep === 'line' ? (
+            <View style={chainNodeStyles.pendingTopLineContainer}>
+              <Animated.View
+                style={[
+                  chainNodeStyles.chainConnector,
+                  chainNodeStyles.previewConnector,
+                  animatedTopLineStyle,
+                ]}
+              />
+            </View>
           ) : (
-            <View style={chainNodeStyles.chainLine} />
-          ))}
-        <View style={chainNodeStyles.pendingDotRow}>
-          <View style={chainNodeStyles.pendingContainer}>
-            <Animated.View style={[chainNodeStyles.pendingDot, dotStyle]} />
-          </View>
+            <View style={chainNodeStyles.chainConnector} />
+          )
+        ) : null}
+        <View style={chainNodeStyles.dotRow}>
+          <Animated.View style={nodeScaleStyle}>
+            <SquareNodeIcon size={22} stroke={colors.accent} strokeWidth={2} radius={6} />
+          </Animated.View>
         </View>
       </View>
-      <View style={chainNodeStyles.pendingLabelColumn}>
-        <View style={chainNodeStyles.pendingLabelSpacer} />
-        <Text style={chainNodeStyles.pendingLabel}>{t('idle_pending')}</Text>
+      <View style={chainNodeStyles.details}>
+        <View style={chainNodeStyles.rowHeader}>
+          <Animated.Text
+            style={[
+              previewStep === 'number'
+                ? chainNodeStyles.pendingNumberLabel
+                : chainNodeStyles.pendingLabel,
+              animatedLabelStyle,
+            ]}
+          >
+            {displayLabel}
+          </Animated.Text>
+        </View>
       </View>
     </View>
   );
 }
 
-const chainNodeStyles = StyleSheet.create({
+function useChainNodeStyles() {
+  const typography = useTypography();
+  return useMemo(
+    () =>
+      StyleSheet.create({
   scroll: {
     flex: 1,
     width: '100%',
@@ -311,17 +460,17 @@ const chainNodeStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chainLine: {
-    width: 3,
+  chainConnector: {
+    width: 6,
     flex: 1,
     minHeight: 8,
     backgroundColor: colors.accent,
+    borderRadius: 3,
+    opacity: 0.7,
   },
-  chainDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.accent,
+  previewConnector: {
+    flex: 0,
+    minHeight: 0,
   },
   details: {
     flex: 1,
@@ -344,7 +493,7 @@ const chainNodeStyles = StyleSheet.create({
     fontSize: 14,
   },
   expandIcon: {
-    fontSize: 14,
+    fontSize: 18,
     color: colors.textMuted,
   },
   dashedLineContainer: {
@@ -361,7 +510,7 @@ const chainNodeStyles = StyleSheet.create({
     marginBottom: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.backgroundSecondary,
+    borderTopColor: colors.textMuted,
   },
   detailLabel: {
     ...typography.body,
@@ -372,6 +521,12 @@ const chainNodeStyles = StyleSheet.create({
   },
   detailItem: {
     ...typography.body,
+    color: colors.textMuted,
+    fontSize: 18,
+    marginBottom: spacing.xs,
+  },
+  detailRuleItem: {
+    ...typography.serif.body,
     color: colors.textMuted,
     fontSize: 18,
     marginBottom: spacing.xs,
@@ -396,11 +551,18 @@ const chainNodeStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pendingLinkFrame: {
+    position: 'absolute',
+    left: -1,
+    top: -1,
+    opacity: 0.9,
+  },
   pendingDot: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: colors.primary,
+    opacity: 0.15,
   },
   pendingLabelColumn: {
     flex: 1,
@@ -417,7 +579,22 @@ const chainNodeStyles = StyleSheet.create({
     height: 36,
     lineHeight: 36,
   },
-});
+  pendingTopLineContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  pendingNumberLabel: {
+    ...typography.chainLabel,
+    color: colors.accent,
+    fontSize: 20,
+    height: 36,
+    lineHeight: 36,
+  },
+      }),
+    [typography]
+  );
+}
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -434,6 +611,7 @@ function ChainDetailModal({
   chain: Chain;
   onClose: () => void;
 }) {
+  const modalStyles = useModalStyles();
   const { t } = useLocale();
   const { colors: themeColors } = useTheme();
   const reservationMinutes = Math.round(chain.reservationDurationMs / 60_000);
@@ -468,14 +646,15 @@ function ChainDetailModal({
             {rules.length === 0 ? (
               <Text style={[modalStyles.emptyRules, { color: themeColors.textMuted }]}>{t('chain_noRules')}</Text>
             ) : (
-              rules.map((r, i) => (
-                <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>
-                  <Text style={[modalStyles.ruleIndex, { color: themeColors.accent }]}>
-                    {r.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(r.nodeIndex + 1) }) : t('chain_preset')}
-                  </Text>
-                  <Text style={[modalStyles.ruleText, { color: themeColors.text }]}>{r.text}</Text>
-                </View>
-              ))
+              rules.map((r, i) => {
+                const nodePart = r.nodeIndex >= 0 ? `节点${r.nodeIndex + 1}` : '预设';
+                const line = `第${i + 1}条，添加于${nodePart}，「${r.text}」`;
+                return (
+                  <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>
+                    <Text style={[modalStyles.ruleLine, { color: themeColors.text }]}>{line}</Text>
+                  </View>
+                );
+              })
             )}
           </ScrollView>
         </Pressable>
@@ -484,7 +663,11 @@ function ChainDetailModal({
   );
 }
 
-const modalStyles = StyleSheet.create({
+function useModalStyles() {
+  const typography = useTypography();
+  return useMemo(
+    () =>
+      StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -539,16 +722,14 @@ const modalStyles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  ruleIndex: {
-    ...typography.chainLabel,
-    color: colors.accent,
-    marginBottom: spacing.xs,
-  },
-  ruleText: {
-    ...typography.body,
+  ruleLine: {
+    ...typography.serif.body,
     color: colors.text,
   },
-});
+      }),
+    [typography]
+  );
+}
 
 interface IdleScreenProps {
   animateSuccess?: boolean;
@@ -564,6 +745,7 @@ function ChainCountBadge({
   animateSuccess?: boolean;
   animateBreak?: boolean;
 }) {
+  const styles = useIdleStyles();
   const { t } = useLocale();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
@@ -649,6 +831,7 @@ function SwipeUpPageWrapper({
   pageIndex: number;
   viewedIndex: number;
 }) {
+  const styles = useIdleStyles();
   const translateY = useSharedValue(0);
   const bodyTranslateY = useSharedValue(0);
   const headerTranslateX = useSharedValue(0);
@@ -793,6 +976,7 @@ function ChainCard({
   onShowDetail?: () => void;
   cornerRadius?: number;
 }) {
+  const styles = useIdleStyles();
   const { t } = useLocale();
   const themeLabel = chain.theme || t('idle_defaultTheme');
   const handlePress = () => {
@@ -806,24 +990,67 @@ function ChainCard({
     styles.chainCard,
     cornerRadius !== undefined && { borderRadius: cornerRadius },
   ];
+  const watermarkNodeIndex = Math.max(1, chain.length);
+  const watermarkValue = !isConfigured || chain.length === 0 ? 0 : watermarkNodeIndex;
+
+  let totalFocusedMs = 0;
+  if (chain.focusTargetMs != null && chain.length > 0) {
+    totalFocusedMs += chain.focusTargetMs * chain.length;
+    if (chain.nodeMetadata) {
+      for (let i = 0; i < chain.length; i += 1) {
+        const meta = chain.nodeMetadata[i];
+        if (meta?.extraDurationMs) {
+          totalFocusedMs += meta.extraDurationMs;
+        }
+      }
+    }
+  }
+
+  let totalFocusLabel: string | null = null;
+  if (totalFocusedMs >= 60_000) {
+    const totalMinutes = Math.floor(totalFocusedMs / 60_000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) {
+      totalFocusLabel = `已执行契约${hours}小时${minutes}分钟`;
+    } else {
+      totalFocusLabel = `已执行契约${minutes}分钟`;
+    }
+  }
+
   return (
     <Pressable
       onPress={handlePress}
       style={cardStyle}
     >
-      <View style={styles.chainCardTop}>
-        <Text style={styles.chainTheme} numberOfLines={1}>
-          {themeLabel}
-        </Text>
-        <ChainCountBadge
-          count={chain.length}
-          animateSuccess={animateSuccess}
-          animateBreak={animateBreak}
-        />
-      </View>
-      <Text style={styles.chainRules}>
-        {t('idle_chainRules', { count: String(chain.precedentRules.length) })}
+      <Text
+        style={styles.chainCardWatermark}
+        pointerEvents="none"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        #{watermarkValue}
       </Text>
+      <View style={styles.chainCardHeader}>
+        <View style={styles.chainCardTop}>
+          <Text style={styles.chainTheme} numberOfLines={1}>
+            {themeLabel}
+          </Text>
+          <ChainCountBadge
+            count={chain.length}
+            animateSuccess={animateSuccess}
+            animateBreak={animateBreak}
+          />
+        </View>
+        {totalFocusLabel && (
+          <Text style={styles.chainTotalFocus}>{totalFocusLabel}</Text>
+        )}
+      </View>
+      <View style={styles.chainCardFooter}>
+        <Text style={styles.chainRules}>
+          {t('idle_chainRules', { count: String(chain.precedentRules.length) })}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -847,6 +1074,7 @@ function ArchivedChainRow({
   onPin: () => void;
   onUnpin: () => void;
 }) {
+  const archivedStyles = useArchivedStyles();
   const translateX = useSharedValue(0);
   const prevGesture = useRef(0);
   const hasSnappedThisGesture = useRef(false);
@@ -999,7 +1227,10 @@ function ArchivedChainRow({
   );
 }
 
-const archivedStyles = StyleSheet.create({
+function useArchivedStyles() {
+  return useMemo(
+    () =>
+      StyleSheet.create({
   rowWrapper: {
     width: '100%',
     height: 160,
@@ -1054,7 +1285,10 @@ const archivedStyles = StyleSheet.create({
     borderTopRightRadius: 12,
     borderBottomRightRadius: 12,
   },
-});
+      }),
+    []
+  );
+}
 
 function AddChainCard({
   onPress,
@@ -1065,6 +1299,7 @@ function AddChainCard({
   onHaptic: () => void;
   addChainLabel: string;
 }) {
+  const styles = useIdleStyles();
   return (
     <Pressable
       onPress={() => {
@@ -1083,6 +1318,8 @@ export function IdleScreen({
   animateSuccess,
   animateBreak,
 }: IdleScreenProps) {
+  const styles = useIdleStyles();
+  const modalStyles = useModalStyles();
   const router = useRouter();
   const {
     chains,
@@ -1105,6 +1342,12 @@ export function IdleScreen({
   const [viewedIndex, setViewedIndex] = useState<number>(0);
   const [chainDetailModalChain, setChainDetailModalChain] = useState<Chain | null>(null);
   const [deleteConfirmChain, setDeleteConfirmChain] = useState<Chain | null>(null);
+  const [reservePreviewChainId, setReservePreviewChainId] = useState<string | null>(null);
+  const [reservePreviewStep, setReservePreviewStep] = useState<'idle' | 'line' | 'fadeOut' | 'number'>('idle');
+  const [reservePreviewToken, setReservePreviewToken] = useState(0);
+  const reservePreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reservePreviewTimer2 = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reservePreviewTimer3 = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeChain = chains.find((c) => c.id === activeChainId);
 
   const displayArchivedChains = useMemo(() => {
@@ -1168,6 +1411,14 @@ export function IdleScreen({
   }, [animateSuccess, animateBreak, clearIdleAnimation]);
 
   useEffect(() => {
+    return () => {
+      if (reservePreviewTimer.current) clearTimeout(reservePreviewTimer.current);
+      if (reservePreviewTimer2.current) clearTimeout(reservePreviewTimer2.current);
+      if (reservePreviewTimer3.current) clearTimeout(reservePreviewTimer3.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (activeChainId && chains.length > 0) {
       const chainIdx = chains.findIndex((c) => c.id === activeChainId);
       if (chainIdx >= 0) {
@@ -1228,6 +1479,11 @@ export function IdleScreen({
     const isConfigured =
       item.theme !== null && item.focusTargetMs !== null;
     const itemCanReserve = isConfigured;
+    const pendingMode: 'none' | 'disconnected' | 'connectedPreview' = !itemCanReserve
+      ? 'none'
+      : reservePreviewChainId === item.id
+        ? 'connectedPreview'
+        : 'disconnected';
     return (
       <View style={styles.pageWrapper}>
         <SwipeUpPageWrapper
@@ -1256,7 +1512,9 @@ export function IdleScreen({
               {isConfigured ? (
                 <ChainNodeList
                   chain={item}
-                  showPendingNode={!!itemCanReserve}
+                  pendingMode={pendingMode}
+                  pendingPreviewStep={reservePreviewChainId === item.id ? reservePreviewStep : 'idle'}
+                  pendingPreviewToken={reservePreviewChainId === item.id ? reservePreviewToken : 0}
                 />
               ) : (
                 <View style={styles.unconfiguredPlaceholder} />
@@ -1270,7 +1528,51 @@ export function IdleScreen({
                 onPress={() => {
                   if (itemCanReserve) {
                     setActiveChain(item.id);
-                    reserve();
+                    if (reservePreviewTimer.current) clearTimeout(reservePreviewTimer.current);
+                    if (reservePreviewTimer2.current) clearTimeout(reservePreviewTimer2.current);
+                    if (reservePreviewTimer3.current) clearTimeout(reservePreviewTimer3.current);
+
+                    setReservePreviewChainId(item.id);
+                    setReservePreviewToken((x) => x + 1);
+                    const fadeDuration = 320;
+                    const numberAnimDuration = 150 + 180; // 与 PendingNodeDot 字号动画保持一致
+
+                    if (item.length > 0) {
+                      // 有已有节点时：先播放 1 秒连线动画，再执行文字淡出与编号动画
+                      setReservePreviewStep('line');
+
+                      // 1) 约 1 秒拉线动画
+                      reservePreviewTimer.current = setTimeout(() => {
+                        setReservePreviewStep('fadeOut');
+                      }, 1000);
+
+                      // 2) 文案淡出后换成新节点编号，并轻微跳动
+                      reservePreviewTimer2.current = setTimeout(() => {
+                        setReservePreviewStep('number');
+                      }, 1000 + fadeDuration);
+
+                      // 3) 节点编号动画结束后再等待约 1 秒，进入预定界面
+                      reservePreviewTimer3.current = setTimeout(() => {
+                        setReservePreviewChainId(null);
+                        setReservePreviewStep('idle');
+                        reserve();
+                      }, 1000 + fadeDuration + numberAnimDuration + 1000);
+                    } else {
+                      // 第一个节点：不需要连线动画，只执行文字切换动画
+                      setReservePreviewStep('fadeOut');
+
+                      // 1) 文案淡出
+                      reservePreviewTimer.current = setTimeout(() => {
+                        setReservePreviewStep('number');
+                      }, fadeDuration);
+
+                      // 2) 编号弹跳动画结束后再等待约 1 秒进入预定界面
+                      reservePreviewTimer2.current = setTimeout(() => {
+                        setReservePreviewChainId(null);
+                        setReservePreviewStep('idle');
+                        reserve();
+                      }, fadeDuration + numberAnimDuration + 1000);
+                    }
                   } else {
                     router.push({
                       pathname: '/chain-settings',
@@ -1465,7 +1767,11 @@ export function IdleScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function useIdleStyles() {
+  const typography = useTypography();
+  return useMemo(
+    () =>
+      StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -1560,12 +1866,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E2A3A',
     borderRadius: 12,
     padding: spacing.lg,
-    justifyContent: 'space-between',
+    paddingBottom: spacing.lg * 3.1,
+    justifyContent: 'flex-start',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  chainCardWatermark: {
+    position: 'absolute',
+    right: -12,
+    top: 10,
+    ...typography.chainNumber,
+    fontSize: 120,
+    opacity: 0.08,
+    color: colors.text,
   },
   chainCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  chainCardHeader: {
+    flexShrink: 0,
+    marginBottom: spacing.lg * 2,
   },
   chainTheme: {
     ...typography.title,
@@ -1590,6 +1912,18 @@ const styles = StyleSheet.create({
   chainRules: {
     ...typography.body,
     color: colors.textMuted,
+  },
+  chainCardFooter: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.lg,
+  },
+  chainTotalFocus: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   swipeUpPageContainer: {
     flex: 1,
@@ -1684,4 +2018,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     alignItems: 'center',
   },
-});
+      }),
+    [typography]
+  );
+}

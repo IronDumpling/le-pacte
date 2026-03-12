@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import { HeavyButton } from './HeavyButton';
-import { colors, typography, spacing } from '../theme';
+import { colors, spacing } from '../theme';
+import { useTypography } from '../typography';
 
 interface SaveConfirmModalProps {
   visible: boolean;
@@ -14,6 +15,8 @@ export function SaveConfirmModal({
   onCancel,
   onConfirm,
 }: SaveConfirmModalProps) {
+  const typography = useTypography();
+  const styles = useMemo(() => makeStyles(typography), [typography]);
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable style={styles.overlay} onPress={onCancel}>
@@ -37,7 +40,8 @@ export function SaveConfirmModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (typography: ReturnType<typeof useTypography>) =>
+  StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.8)',
