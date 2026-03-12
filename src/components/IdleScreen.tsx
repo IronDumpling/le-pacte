@@ -42,6 +42,7 @@ import { useTypography } from '../design/typography';
 import { useFonts } from 'expo-font';
 import { getSansFontsForLocale } from '../design/fonts/sansFonts';
 import { getMonoFonts } from '../design/fonts/monoFonts';
+import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
 function SquareNodeIcon({
   size = 22,
@@ -260,8 +261,14 @@ function ChainNodeRow({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const { t, locale } = useLocale();
+  const typography = useTypography();
+  // 按需加载 Noto Serif，用于节点展开时的规则文案；失败时回退到系统 serif/现有 body
+  const [serifLoaded] = useFonts(getSerifFontsForLocale(locale));
+  const ruleTextStyle = serifLoaded
+    ? typography.serif.body
+    : { ...typography.body, fontFamily: 'serif' as const };
   const chainNodeStyles = useChainNodeStyles();
-  const { t } = useLocale();
   const lineProgress = useSharedValue(0);
   const destructionProgressValue = useSharedValue(0);
 
@@ -415,7 +422,10 @@ function ChainNodeRow({
                 <>
                   <Text style={chainNodeStyles.detailLabel}>{t('idle_newRule')}</Text>
                   {rules.map((r) => (
-                    <Text key={r.ruleIndex} style={chainNodeStyles.detailRuleItem}>
+                    <Text
+                      key={r.ruleIndex}
+                      style={[chainNodeStyles.detailRuleItem, ruleTextStyle]}
+                    >
                       第{r.ruleIndex}条，「{r.text}」
                     </Text>
                   ))}
@@ -665,7 +675,6 @@ function useChainNodeStyles() {
     marginBottom: spacing.xs,
   },
   detailRuleItem: {
-    ...typography.serif.body,
     color: colors.textMuted,
     fontSize: 18,
     marginBottom: spacing.xs,
@@ -750,8 +759,14 @@ function ChainDetailModal({
   chain: Chain;
   onClose: () => void;
 }) {
+  const { t, locale } = useLocale();
+  const typography = useTypography();
+  // 按需加载 Noto Serif，用于归档详情中的规则文案；失败时回退到系统 serif/现有 body
+  const [serifLoaded] = useFonts(getSerifFontsForLocale(locale));
+  const ruleTextStyle = serifLoaded
+    ? typography.serif.body
+    : { ...typography.body, fontFamily: 'serif' as const };
   const modalStyles = useModalStyles();
-  const { t } = useLocale();
   const { colors: themeColors } = useTheme();
   const reservationMinutes = Math.round(chain.reservationDurationMs / 60_000);
   const focusDuration = chain.focusTargetMs
@@ -790,7 +805,11 @@ function ChainDetailModal({
                 const line = `第${i + 1}条，添加于${nodePart}，「${r.text}」`;
                 return (
                   <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>
-                    <Text style={[modalStyles.ruleLine, { color: themeColors.text }]}>{line}</Text>
+                    <Text
+                      style={[modalStyles.ruleLine, ruleTextStyle, { color: themeColors.text }]}
+                    >
+                      {line}
+                    </Text>
                   </View>
                 );
               })
@@ -862,8 +881,7 @@ function useModalStyles() {
     marginBottom: spacing.sm,
   },
   ruleLine: {
-    ...typography.serif.body,
-    color: colors.text,
+    // 具体字体由调用方根据 serifLoaded 决定
   },
       }),
     [typography]
