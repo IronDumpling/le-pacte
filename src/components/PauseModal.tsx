@@ -13,6 +13,8 @@ import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { useTypography } from '../design/typography';
+import { useFonts } from 'expo-font';
+import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
 interface PauseModalProps {
   precedentRules: PrecedentRule[];
@@ -26,11 +28,12 @@ export function PauseModal({
   onBack,
 }: PauseModalProps) {
   const { colors: themeColors } = useTheme();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const typography = useTypography();
+  const [serifLoaded] = useFonts(getSerifFontsForLocale(locale));
   const styles = useMemo(
-    () => makeStyles(themeColors, typography),
-    [themeColors, typography]
+    () => makeStyles(themeColors, typography, serifLoaded),
+    [themeColors, typography, serifLoaded]
   );
   return (
     <Modal visible animationType="fade">
@@ -69,7 +72,11 @@ export function PauseModal({
   );
 }
 
-const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypography>) =>
+const makeStyles = (
+  themeColors: any,
+  typography: ReturnType<typeof useTypography>,
+  serifLoaded: boolean
+) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -80,16 +87,27 @@ const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypograph
       borderBottomWidth: 1,
       borderBottomColor: themeColors.backgroundSecondary,
     },
-    title: {
-      // Precedent selection is part of "case law" → use serif
-      ...typography.serif.title,
-      color: colors.text,
-    },
-    subtitle: {
-      ...typography.serif.subtitle,
-      color: colors.textMuted,
-      marginTop: spacing.sm,
-    },
+    title: serifLoaded
+      ? {
+          // Precedent selection is part of "case law" → use serif
+          ...typography.serif.title,
+          color: colors.text,
+        }
+      : {
+          ...typography.title,
+          color: colors.text,
+        },
+    subtitle: serifLoaded
+      ? {
+          ...typography.serif.subtitle,
+          color: colors.textMuted,
+          marginTop: spacing.sm,
+        }
+      : {
+          ...typography.body,
+          color: colors.textMuted,
+          marginTop: spacing.sm,
+        },
     list: {
       padding: spacing.xl,
     },
@@ -102,10 +120,16 @@ const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypograph
     ruleItemPressed: {
       opacity: 0.8,
     },
-    ruleText: {
-      ...typography.serif.body,
-      color: colors.text,
-    },
+    ruleText: serifLoaded
+      ? {
+          ...typography.serif.body,
+          color: colors.text,
+        }
+      : {
+          ...typography.body,
+          fontFamily: 'serif',
+          color: colors.text,
+        },
     footer: {
       padding: spacing.xl,
       alignItems: 'center',

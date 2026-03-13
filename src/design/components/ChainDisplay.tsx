@@ -9,6 +9,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors } from '../theme';
 import { useTypography } from '../typography';
+import { useFonts } from 'expo-font';
+import { getMonoFonts } from '../fonts/monoFonts';
 
 interface ChainDisplayProps {
   count: number;
@@ -21,6 +23,8 @@ export function ChainDisplay({ count, animateBreak, animateSuccess }: ChainDispl
   const opacity = useSharedValue(1);
   const translateX = useSharedValue(0);
   const typography = useTypography();
+  // 按需加载 Roboto Mono 网络字体，用于 chainLabel/chainNumber，不影响首屏
+  useFonts(getMonoFonts());
   const styles = useMemo(() => makeStyles(typography), [typography]);
 
   React.useEffect(() => {

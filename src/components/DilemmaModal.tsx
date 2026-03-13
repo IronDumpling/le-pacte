@@ -17,13 +17,19 @@ import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { useTypography } from '../design/typography';
+import { useFonts } from 'expo-font';
+import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
 export function DilemmaModal() {
   const { chooseDestruction, chooseCompromise, returnToFocus, chains, activeChainId } = usePacteStore();
   const { colors: themeColors } = useTheme();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const typography = useTypography();
-  const styles = useMemo(() => makeStyles(themeColors, typography), [themeColors, typography]);
+  const [serifLoaded] = useFonts(getSerifFontsForLocale(locale));
+  const styles = useMemo(
+    () => makeStyles(themeColors, typography, serifLoaded),
+    [themeColors, typography, serifLoaded]
+  );
   const [exceptionText, setExceptionText] = useState('');
   const [showInput, setShowInput] = useState(false);
   const activeChainLength =
@@ -118,7 +124,11 @@ export function DilemmaModal() {
   );
 }
 
-const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypography>) =>
+const makeStyles = (
+  themeColors: any,
+  typography: ReturnType<typeof useTypography>,
+  serifLoaded: boolean
+) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -129,17 +139,28 @@ const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypograph
       padding: spacing.xl,
       alignItems: 'center',
     },
-    title: {
-      // Dilemma is part of precedent / case-law decision → serif
-      ...typography.serif.title,
-      color: colors.text,
-      marginBottom: spacing.sm,
-    },
-    subtitle: {
-      ...typography.serif.subtitle,
-      color: colors.textMuted,
-      marginBottom: spacing.xxl,
-    },
+    title: serifLoaded
+      ? {
+          ...typography.serif.title,
+          color: colors.text,
+          marginBottom: spacing.sm,
+        }
+      : {
+          ...typography.title,
+          color: colors.text,
+          marginBottom: spacing.sm,
+        },
+    subtitle: serifLoaded
+      ? {
+          ...typography.serif.subtitle,
+          color: colors.textMuted,
+          marginBottom: spacing.xxl,
+        }
+      : {
+          ...typography.body,
+          color: colors.textMuted,
+          marginBottom: spacing.xxl,
+        },
     options: {
       width: '100%',
       gap: spacing.lg,
@@ -160,25 +181,48 @@ const makeStyles = (themeColors: any, typography: ReturnType<typeof useTypograph
       borderRadius: 16,
       padding: spacing.xl,
     },
-    inputTitle: {
-      ...typography.serif.title,
-      color: colors.text,
-      marginBottom: spacing.sm,
-    },
-    inputHint: {
-      ...typography.serif.body,
-      color: colors.textMuted,
-      marginBottom: spacing.lg,
-    },
-    input: {
-      backgroundColor: themeColors.background,
-      borderRadius: 8,
-      padding: spacing.md,
-      color: themeColors.text,
-      ...typography.serif.body,
-      minHeight: 80,
-      textAlignVertical: 'top',
-    },
+    inputTitle: serifLoaded
+      ? {
+          ...typography.serif.title,
+          color: colors.text,
+          marginBottom: spacing.sm,
+        }
+      : {
+          ...typography.title,
+          color: colors.text,
+          marginBottom: spacing.sm,
+        },
+    inputHint: serifLoaded
+      ? {
+          ...typography.serif.body,
+          color: colors.textMuted,
+          marginBottom: spacing.lg,
+        }
+      : {
+          ...typography.body,
+          color: colors.textMuted,
+          marginBottom: spacing.lg,
+        },
+    input: serifLoaded
+      ? {
+          backgroundColor: themeColors.background,
+          borderRadius: 8,
+          padding: spacing.md,
+          color: themeColors.text,
+          ...typography.serif.body,
+          minHeight: 80,
+          textAlignVertical: 'top',
+        }
+      : {
+          backgroundColor: themeColors.background,
+          borderRadius: 8,
+          padding: spacing.md,
+          color: themeColors.text,
+          ...typography.body,
+          fontFamily: 'serif',
+          minHeight: 80,
+          textAlignVertical: 'top',
+        },
     inputActions: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
