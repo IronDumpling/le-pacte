@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -13,6 +13,7 @@ import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { PauseModal } from './PauseModal';
+import { playPactCompleteSound } from '../audio/soundEffects';
 import { useTypography } from '../design/typography';
 
 const TIMER_RING_SIZE = 240;
@@ -43,6 +44,15 @@ export function FocusedScreen() {
 
   const [showPauseModal, setShowPauseModal] = useState(false);
   const targetReached = remainingMs <= 0;
+
+  const hasPlayedCompleteRef = useRef(false);
+  if (!targetReached && hasPlayedCompleteRef.current) {
+    hasPlayedCompleteRef.current = false;
+  }
+  if (targetReached && !hasPlayedCompleteRef.current) {
+    hasPlayedCompleteRef.current = true;
+    playPactCompleteSound();
+  }
 
   const handleComplete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);

@@ -13,6 +13,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePacteStore } from '../src/store/pacteStore';
@@ -99,7 +100,11 @@ export default function ChainSettingsScreen() {
   const reservationScrollRef = useRef<ScrollView>(null);
   const focusHoursScrollRef = useRef<ScrollView>(null);
   const focusMinutesScrollRef = useRef<ScrollView>(null);
+  const reservationPickerInitialized = useRef(false);
   const focusPickerInitialized = useRef(false);
+  const lastReservationMinutesRef = useRef<number | null>(null);
+  const lastFocusHoursRef = useRef<number | null>(null);
+  const lastFocusMinutesRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (chain) {
@@ -231,8 +236,10 @@ export default function ChainSettingsScreen() {
     if (
       currentStep === 0 &&
       !chain.reservationDurationLocked &&
-      reservationScrollRef.current
+      reservationScrollRef.current &&
+      !reservationPickerInitialized.current
     ) {
+      reservationPickerInitialized.current = true;
       const idx = RESERVATION_OPTIONS.findIndex(
         (m) => m * 60 * 1000 === chain.reservationDurationMs
       );
@@ -243,6 +250,9 @@ export default function ChainSettingsScreen() {
           animated: false,
         });
       }, 100);
+    }
+    if (currentStep !== 0) {
+      reservationPickerInitialized.current = false;
     }
   }, [currentStep, chain.reservationDurationLocked, chain.reservationDurationMs]);
 
@@ -280,6 +290,10 @@ export default function ChainSettingsScreen() {
     const minutes = RESERVATION_OPTIONS[clamped];
     if (chain.reservationDurationMs !== minutes * 60 * 1000) {
       updateChain(chain.id, { reservationDurationMs: minutes * 60 * 1000 });
+      if (lastReservationMinutesRef.current !== minutes) {
+        lastReservationMinutesRef.current = minutes;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
     }
   };
 
@@ -289,7 +303,12 @@ export default function ChainSettingsScreen() {
     const offset = e.nativeEvent.contentOffset.y;
     const index = Math.round(offset / ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(index, HOURS_OPTIONS.length - 1));
-    setFocusHours(HOURS_OPTIONS[clamped]);
+    const hours = HOURS_OPTIONS[clamped];
+    setFocusHours(hours);
+    if (lastFocusHoursRef.current !== hours) {
+      lastFocusHoursRef.current = hours;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
 
   const handleFocusMinutesScroll = (
@@ -298,7 +317,12 @@ export default function ChainSettingsScreen() {
     const offset = e.nativeEvent.contentOffset.y;
     const index = Math.round(offset / ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(index, MINUTES_OPTIONS.length - 1));
-    setFocusMinutes(MINUTES_OPTIONS[clamped]);
+    const minutes = MINUTES_OPTIONS[clamped];
+    setFocusMinutes(minutes);
+    if (lastFocusMinutesRef.current !== minutes) {
+      lastFocusMinutesRef.current = minutes;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
   };
 
   const renderStepContent = () => {
@@ -312,7 +336,7 @@ export default function ChainSettingsScreen() {
               按下预定后，契约将在多久后开始
             </Text>
             {locked ? (
-              <Text style={styles.lockedText}>
+              <Text style={[styles.lockedText, typography.chainNumber]}>
                 已设置：{chain.reservationDurationMs / 60000} 分钟
               </Text>
             ) : (
@@ -340,7 +364,8 @@ export default function ChainSettingsScreen() {
                             isSelected && styles.pickerItemTextSelected,
                           ]}
                         >
-                          {min} 分钟
+                          <Text style={styles.pickerItemNumber}>{min}</Text>
+                          <Text> 分钟</Text>
                         </Text>
                       </View>
                     );
@@ -358,7 +383,7 @@ export default function ChainSettingsScreen() {
             <Text style={styles.sectionTitle}>专注时间长度</Text>
             <Text style={styles.sectionSubtitle}>每次契约的持续时长</Text>
             {locked ? (
-              <Text style={styles.lockedText}>
+              <Text style={[styles.lockedText, typography.chainNumber]}>
                 已设置：
                 {(() => {
                   const { hours, minutes } = msToHoursMinutes(
@@ -672,6 +697,7 @@ function createStyles(
     color: c.textMuted,
   },
   pickerWrapper: {
+    width: '100%',
     height: ITEM_HEIGHT * PICKER_VISIBLE_ITEMS,
     position: 'relative',
     marginTop: spacing.lg,
@@ -701,6 +727,12 @@ function createStyles(
   pickerItemText: {
     ...typography.title,
     color: c.textMuted,
+    fontFamily: typography.chainNumber.fontFamily,
+    textAlign: 'center',
+    width: '100%',
+  },
+  pickerItemNumber: {
+    fontFamily: typography.chainNumber.fontFamily,
   },
   pickerItemTextSelected: {
     color: c.primary,
@@ -714,12 +746,13 @@ function createStyles(
   },
   focusPickerColumn: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   focusTimeLabel: {
     ...typography.body,
     color: c.textMuted,
     marginBottom: spacing.sm,
+    textAlign: 'center',
   },
   focusColonColumn: {
     alignItems: 'center',
