@@ -22,7 +22,7 @@ import {
   LockedConfirmModal,
   SaveConfirmModal,
 } from '../src/design/components';
-import { RESERVATION_OPTIONS } from '../src/types/chain';
+import { RESERVATION_OPTIONS, type ReservationOption } from '../src/types/chain';
 import { colors, spacing } from '../src/design/theme';
 import { useTheme } from '../src/theme/ThemeContext';
 import { useTypography } from '../src/design/typography';
@@ -32,6 +32,22 @@ const PICKER_VISIBLE_ITEMS = 5;
 
 const HOURS_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES_OPTIONS = Array.from({ length: 60 }, (_, i) => i);
+
+function findReservationOptionByDurationMs(ms: number): ReservationOption | undefined {
+  return RESERVATION_OPTIONS.find((opt) => opt.durationMs === ms);
+}
+
+function getReservationLabelFromDurationMs(ms: number): string {
+  const matched = findReservationOptionByDurationMs(ms);
+  if (matched) return matched.label;
+  // 回退：用分钟数显示
+  const minutes = Math.round(ms / 60000);
+  if (minutes <= 0) {
+    const seconds = Math.round(ms / 1000);
+    return `${seconds}秒`;
+  }
+  return `${minutes}分钟`;
+}
 
 function getInitialStep(chain: {
   reservationDurationLocked?: boolean;
@@ -241,7 +257,7 @@ export default function ChainSettingsScreen() {
     ) {
       reservationPickerInitialized.current = true;
       const idx = RESERVATION_OPTIONS.findIndex(
-        (m) => m * 60 * 1000 === chain.reservationDurationMs
+        (opt) => opt.durationMs === chain.reservationDurationMs
       );
       const scrollIndex = idx >= 0 ? idx : 2;
       setTimeout(() => {
@@ -287,11 +303,11 @@ export default function ChainSettingsScreen() {
     const offset = e.nativeEvent.contentOffset.y;
     const index = Math.round(offset / ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(index, RESERVATION_OPTIONS.length - 1));
-    const minutes = RESERVATION_OPTIONS[clamped];
-    if (chain.reservationDurationMs !== minutes * 60 * 1000) {
-      updateChain(chain.id, { reservationDurationMs: minutes * 60 * 1000 });
-      if (lastReservationMinutesRef.current !== minutes) {
-        lastReservationMinutesRef.current = minutes;
+    const option = RESERVATION_OPTIONS[clamped];
+    if (chain.reservationDurationMs !== option.durationMs) {
+      updateChain(chain.id, { reservationDurationMs: option.durationMs });
+      if (lastReservationMinutesRef.current !== option.durationMs) {
+        lastReservationMinutesRef.current = option.durationMs;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     }
@@ -337,7 +353,7 @@ export default function ChainSettingsScreen() {
             </Text>
             {locked ? (
               <Text style={[styles.lockedText, typography.chainNumber]}>
-                已设置：{chain.reservationDurationMs / 60000} 分钟
+                已设置：{getReservationLabelFromDurationMs(chain.reservationDurationMs)}
               </Text>
             ) : (
               <View style={styles.pickerWrapper}>
@@ -353,19 +369,20 @@ export default function ChainSettingsScreen() {
                   onMomentumScrollEnd={handleReservationScroll}
                   onScrollEndDrag={handleReservationScroll}
                 >
-                  {RESERVATION_OPTIONS.map((min) => {
+                  {RESERVATION_OPTIONS.map((opt) => {
                     const isSelected =
-                      chain.reservationDurationMs === min * 60 * 1000;
+                      chain.reservationDurationMs === opt.durationMs;
                     return (
-                      <View key={min} style={styles.pickerItem}>
+                      <View key={opt.durationMs} style={styles.pickerItem}>
                         <Text
                           style={[
                             styles.pickerItemText,
                             isSelected && styles.pickerItemTextSelected,
                           ]}
                         >
-                          <Text style={styles.pickerItemNumber}>{min}</Text>
-                          <Text> 分钟</Text>
+                          <Text style={styles.pickerItemNumber}>
+                            {opt.label}
+                          </Text>
                         </Text>
                       </View>
                     );
