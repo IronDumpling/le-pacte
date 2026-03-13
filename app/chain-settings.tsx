@@ -100,6 +100,7 @@ export default function ChainSettingsScreen() {
   const reservationScrollRef = useRef<ScrollView>(null);
   const focusHoursScrollRef = useRef<ScrollView>(null);
   const focusMinutesScrollRef = useRef<ScrollView>(null);
+  const reservationPickerInitialized = useRef(false);
   const focusPickerInitialized = useRef(false);
   const lastReservationMinutesRef = useRef<number | null>(null);
   const lastFocusHoursRef = useRef<number | null>(null);
@@ -235,8 +236,10 @@ export default function ChainSettingsScreen() {
     if (
       currentStep === 0 &&
       !chain.reservationDurationLocked &&
-      reservationScrollRef.current
+      reservationScrollRef.current &&
+      !reservationPickerInitialized.current
     ) {
+      reservationPickerInitialized.current = true;
       const idx = RESERVATION_OPTIONS.findIndex(
         (m) => m * 60 * 1000 === chain.reservationDurationMs
       );
@@ -247,6 +250,9 @@ export default function ChainSettingsScreen() {
           animated: false,
         });
       }, 100);
+    }
+    if (currentStep !== 0) {
+      reservationPickerInitialized.current = false;
     }
   }, [currentStep, chain.reservationDurationLocked, chain.reservationDurationMs]);
 
