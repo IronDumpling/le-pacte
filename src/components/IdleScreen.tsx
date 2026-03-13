@@ -33,6 +33,11 @@ import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton } from '../design/components';
+import {
+  playPactStartSound,
+  playChainLevelUpSound,
+  playChainDestructionSound,
+} from '../audio/soundEffects';
 import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
@@ -928,6 +933,7 @@ function ChainCountBadge({
         withSpring(1)
       );
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      playChainLevelUpSound();
     }
   }, [animateSuccess, count]);
 
@@ -1743,6 +1749,7 @@ export function IdleScreen({
 
       // 每个节点消失时触发 header 数字晃动 + 背景闪红
       setDestructionFlashTrigger((t) => t + 1);
+      playChainDestructionSound();
 
       if (destructionStep !== null && destructionStep + 1 >= nodeCountForDestruction) {
         finalizeDestruction(item.id);
@@ -1833,6 +1840,7 @@ export function IdleScreen({
                       reservePreviewTimer3.current = setTimeout(() => {
                         setReservePreviewChainId(null);
                         setReservePreviewStep('idle');
+                        playPactStartSound();
                         reserve();
                       }, 1000 + fadeDuration + numberAnimDuration + 1000);
                     } else {
@@ -1848,6 +1856,7 @@ export function IdleScreen({
                       reservePreviewTimer2.current = setTimeout(() => {
                         setReservePreviewChainId(null);
                         setReservePreviewStep('idle');
+                        playPactStartSound();
                         reserve();
                       }, fadeDuration + numberAnimDuration + 1000);
                     }

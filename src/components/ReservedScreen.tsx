@@ -6,6 +6,7 @@ import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton, CircularProgressBar } from '../design/components';
 import { useReservedCountdown, formatMsToTime } from '../hooks/useTimer';
 import { colors, spacing } from '../design/theme';
+import { playPactStartSound, playCountdownBeepSound } from '../audio/soundEffects';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { useTypography } from '../design/typography';
@@ -33,6 +34,17 @@ export function ReservedScreen() {
 
   const isLast20Seconds = remainingMs > 0 && remainingMs <= LAST_PHASE_MS;
   const last20SecondsCount = Math.ceil(remainingMs / 1000);
+
+  const lastBeepCountRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (!isLast20Seconds || last20SecondsCount <= 0) {
+      lastBeepCountRef.current = null;
+      return;
+    }
+    if (lastBeepCountRef.current === last20SecondsCount) return;
+    lastBeepCountRef.current = last20SecondsCount;
+    playCountdownBeepSound();
+  }, [isLast20Seconds, last20SecondsCount]);
 
   const reservationMinutes = Math.floor(durationMs / 60000);
   const triggerRitual = chain?.triggerRitual || t('reserved_start');
@@ -102,7 +114,10 @@ export function ReservedScreen() {
       <View style={styles.footer}>
         <HeavyButton
           title={buttonLabel}
-          onPress={enterFocus}
+          onPress={() => {
+            playPactStartSound();
+            enterFocus();
+          }}
           variant="primary"
         />
       </View>
