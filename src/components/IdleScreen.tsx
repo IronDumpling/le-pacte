@@ -48,6 +48,7 @@ import { useFonts } from 'expo-font';
 import { getSansFontsForLocale } from '../design/fonts/sansFonts';
 import { getMonoFonts } from '../design/fonts/monoFonts';
 import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
+import { markAppReady } from '../splash/splashGate';
 
 function SquareNodeIcon({
   size = 22,
@@ -1526,6 +1527,7 @@ export function IdleScreen({
 }: IdleScreenProps) {
   const styles = useIdleStyles();
   const modalStyles = useModalStyles();
+  const hasReportedReadyRef = useRef(false);
   const router = useRouter();
   const {
     chains,
@@ -1971,8 +1973,24 @@ export function IdleScreen({
     return renderArchivedPage();
   };
 
+  const handleRootLayout = useCallback(() => {
+    if (hasReportedReadyRef.current) return;
+    hasReportedReadyRef.current = true;
+
+    // 等下一帧再通知，以确保 IdleScreen 已完成首次绘制
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        markAppReady();
+      });
+    });
+  }, []);
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+      edges={['top']}
+      onLayout={handleRootLayout}
+    >
       {chainDetailModalChain && (
         <ChainDetailModal
           chain={chainDetailModalChain}
