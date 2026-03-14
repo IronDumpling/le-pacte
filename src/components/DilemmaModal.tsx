@@ -32,6 +32,7 @@ export function DilemmaModal() {
   );
   const [exceptionText, setExceptionText] = useState('');
   const [showInput, setShowInput] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
   const activeChainLength =
     (activeChainId ? chains.find((c) => c.id === activeChainId)?.length : undefined) ?? 0;
 
@@ -45,15 +46,24 @@ export function DilemmaModal() {
   };
 
   const handleCompromiseSubmit = () => {
+    const trimmed = exceptionText.trim();
+    if (!trimmed) {
+      setErrorText(t('dilemma_ruleEmpty'));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    chooseCompromise(exceptionText);
+    chooseCompromise(trimmed);
     setExceptionText('');
+    setErrorText(null);
     setShowInput(false);
   };
 
   const handleCompromiseCancel = () => {
     setShowInput(false);
     setExceptionText('');
+    setErrorText(null);
   };
 
   if (showInput) {
@@ -73,18 +83,29 @@ export function DilemmaModal() {
               placeholder={t('dilemma_placeholder')}
               placeholderTextColor={themeColors.textMuted}
               value={exceptionText}
-              onChangeText={setExceptionText}
+              onChangeText={(text) => {
+                setExceptionText(text);
+                if (errorText) {
+                  setErrorText(null);
+                }
+              }}
               multiline
               autoFocus
             />
+            {errorText ? (
+              <Text style={styles.errorText}>{errorText}</Text>
+            ) : null}
             <View style={styles.inputActions}>
-              <Pressable onPress={handleCompromiseCancel} style={styles.cancelBtn}>
-                <Text style={styles.cancelText}>{t('common_cancel')}</Text>
-              </Pressable>
+              <HeavyButton
+                title={t('common_cancel')}
+                onPress={handleCompromiseCancel}
+                variant="secondary"
+                style={styles.cancelBtn}
+              />
               <HeavyButton
                 title={t('dilemma_writeRule')}
                 onPress={handleCompromiseSubmit}
-                variant="secondary"
+                variant="primary"
                 style={styles.submitBtn}
               />
             </View>
@@ -230,13 +251,7 @@ const makeStyles = (
       marginTop: spacing.lg,
     },
     cancelBtn: {
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-    },
-    cancelText: {
-      // General controls remain sans
-      ...typography.body,
-      color: colors.textMuted,
+      minWidth: 140,
     },
     submitBtn: {
       minWidth: 140,
@@ -250,4 +265,15 @@ const makeStyles = (
       ...typography.body,
       color: colors.accent,
     },
+    errorText: serifLoaded
+      ? {
+          ...typography.serif.body,
+          color: colors.destructionBase,
+          marginTop: spacing.sm,
+        }
+      : {
+          ...typography.body,
+          color: colors.destructionBase,
+          marginTop: spacing.sm,
+        },
   });

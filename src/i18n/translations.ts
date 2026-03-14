@@ -54,12 +54,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_title: '判例结算',
     dilemma_subtitle: '下必为例',
     dilemma_recordException: '记录本次例外',
-    dilemma_inputHint: '未来的每一次专注，你都必须允许此行为',
+    dilemma_inputHint: '未来的每一次专注，你都必须允许此行为，此为下必为例',
     dilemma_placeholder: '例如：中途拿快递',
-    dilemma_writeRule: '写入下必为例规则',
+    dilemma_writeRule: '写入规则',
     dilemma_admitFailure: '承认失败，粉碎当前契约链',
     dilemma_admitFailureDestroy: '失败，摧毁长度{n}的契约链',
     dilemma_allowException: '允许本次违规，但下必为例',
+    dilemma_ruleEmpty: '规则不能为空',
 
     locked_confirm: '确定',
     save_confirmTitle: '确认保存？',
@@ -99,10 +100,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     chainSettings_rulesHint: '违反规则时，将进入判例结算',
     chainSettings_addRule: '添加规则',
     chainSettings_addRuleTitle: '添加下必为例规则',
-    chainSettings_addRuleSubtitle: '描述违反后的后果',
+    chainSettings_addRuleSubtitle: '描述专注中允许暂停的例外情况',
     chainSettings_addRulePlaceholder: '例如：中途拿快递',
     chainSettings_hint: '提示',
     chainSettings_shortContract: '你不能缔结这样短暂的契约',
+    chainSettings_ruleEmpty: '规则不能为空',
   },
   en: {
     common_back: '← Back',
@@ -158,6 +160,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_admitFailure: 'Admit failure, break chain',
     dilemma_admitFailureDestroy: 'Admit failure (destroy chain of length {n})',
     dilemma_allowException: 'Allow this exception',
+    dilemma_ruleEmpty: 'Rule cannot be empty',
 
     locked_confirm: 'OK',
     save_confirmTitle: 'Confirm save?',
@@ -201,6 +204,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chainSettings_addRulePlaceholder: 'e.g. picking up a package',
     chainSettings_hint: 'Hint',
     chainSettings_shortContract: 'Contract too short',
+    chainSettings_ruleEmpty: 'Rule cannot be empty',
   },
   fr: {
     common_back: '← Retour',
@@ -256,6 +260,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_admitFailure: 'Reconnaître l\'échec, rompre la chaîne',
     dilemma_admitFailureDestroy: 'Reconnaître l\'échec (détruira une chaîne de longueur {n})',
     dilemma_allowException: 'Autoriser cette exception',
+    dilemma_ruleEmpty: 'La règle ne peut pas être vide',
 
     locked_confirm: 'OK',
     save_confirmTitle: 'Confirmer l\'enregistrement ?',
@@ -299,6 +304,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chainSettings_addRulePlaceholder: 'ex. aller chercher un colis',
     chainSettings_hint: 'Indication',
     chainSettings_shortContract: 'Contrat trop court',
+    chainSettings_ruleEmpty: 'La règle ne peut pas être vide',
   },
   ja: {
     common_back: '← 戻る',
@@ -354,6 +360,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_admitFailure: '失敗を認め、チェーンを破棄',
     dilemma_admitFailureDestroy: '失敗を認める（長さ{n}の契約チェーンを破棄）',
     dilemma_allowException: '今回の違反を許可',
+    dilemma_ruleEmpty: 'ルールを空にすることはできません',
 
     locked_confirm: 'OK',
     save_confirmTitle: '保存を確認しますか？',
@@ -397,6 +404,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chainSettings_addRulePlaceholder: '例：宅配便を受け取る',
     chainSettings_hint: 'ヒント',
     chainSettings_shortContract: '契約が短すぎます',
+    chainSettings_ruleEmpty: 'ルールを空にすることはできません',
   },
 };
 

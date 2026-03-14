@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import { HeavyButton } from './HeavyButton';
 import { colors, spacing } from '../theme';
 import { useTypography } from '../typography';
+import { useLocale } from '../../i18n/LocaleContext';
 
 interface SaveConfirmModalProps {
   visible: boolean;
@@ -17,18 +18,22 @@ export function SaveConfirmModal({
 }: SaveConfirmModalProps) {
   const typography = useTypography();
   const styles = useMemo(() => makeStyles(typography), [typography]);
+  const { t } = useLocale();
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable style={styles.overlay} onPress={onCancel}>
         <Pressable style={styles.container} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>确认保存？</Text>
-          <Text style={styles.subtitle}>该设置不可修改</Text>
+          <Text style={styles.title}>{t('save_confirmTitle')}</Text>
+          <Text style={styles.subtitle}>{t('save_confirmSubtitle')}</Text>
           <View style={styles.actions}>
-            <Pressable onPress={onCancel} style={styles.cancelBtn}>
-              <Text style={styles.cancelText}>取消</Text>
-            </Pressable>
             <HeavyButton
-              title="确认"
+              title={t('common_cancel')}
+              onPress={onCancel}
+              variant="secondary"
+              style={styles.cancelBtn}
+            />
+            <HeavyButton
+              title={t('common_confirm')}
               onPress={onConfirm}
               variant="primary"
               style={styles.confirmBtn}
@@ -70,12 +75,7 @@ const makeStyles = (typography: ReturnType<typeof useTypography>) =>
     alignItems: 'center',
   },
   cancelBtn: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  cancelText: {
-    ...typography.body,
-    color: colors.textMuted,
+    minWidth: 140,
   },
   confirmBtn: {
     minWidth: 140,

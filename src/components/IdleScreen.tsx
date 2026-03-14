@@ -2012,22 +2012,22 @@ export function IdleScreen({
                 {t('idle_irreversible')}
               </Text>
               <View style={styles.deleteModalActions}>
-                <Pressable
-                  style={[styles.deleteModalCancel, { backgroundColor: themeColors.backgroundSecondary }]}
+                <HeavyButton
+                  title={t('common_cancel')}
                   onPress={() => setDeleteConfirmChain(null)}
-                >
-                  <Text style={[styles.deleteModalCancelText, { color: themeColors.text }]}>{t('common_cancel')}</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.deleteModalConfirm}
+                  variant="secondary"
+                  style={styles.deleteModalCancel}
+                />
+                <HeavyButton
+                  title={t('common_delete')}
                   onPress={() => {
                     deleteArchivedChain(deleteConfirmChain.id);
                     setDeleteConfirmChain(null);
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                   }}
-                >
-                  <Text style={[styles.deleteModalConfirmText, { color: themeColors.text }]}>{t('common_delete')}</Text>
-                </Pressable>
+                  variant="destruction"
+                  style={styles.deleteModalConfirm}
+                />
               </View>
             </Pressable>
           </Pressable>

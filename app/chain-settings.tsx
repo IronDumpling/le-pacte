@@ -26,6 +26,9 @@ import { RESERVATION_OPTIONS, type ReservationOption } from '../src/types/chain'
 import { colors, spacing } from '../src/design/theme';
 import { useTheme } from '../src/theme/ThemeContext';
 import { useTypography } from '../src/design/typography';
+import { useLocale } from '../src/i18n/LocaleContext';
+import { useFonts } from 'expo-font';
+import { getSerifFontsForLocale } from '../src/design/fonts/serifFonts';
 
 const ITEM_HEIGHT = 56;
 const PICKER_VISIBLE_ITEMS = 5;
@@ -90,6 +93,8 @@ export default function ChainSettingsScreen() {
   const { chains, updateChain, addPrecedentRule } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const typography = useTypography();
+  const { t, locale } = useLocale();
+  useFonts(getSerifFontsForLocale(locale));
 
   const chain = chains.find((c) => c.id === id);
   const styles = useMemo(
@@ -112,6 +117,7 @@ export default function ChainSettingsScreen() {
   const [lockedModalAdvances, setLockedModalAdvances] = useState(true);
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
   const [addRuleInput, setAddRuleInput] = useState('');
+  const [addRuleError, setAddRuleError] = useState<string | null>(null);
 
   const reservationScrollRef = useRef<ScrollView>(null);
   const focusHoursScrollRef = useRef<ScrollView>(null);
@@ -232,13 +238,18 @@ export default function ChainSettingsScreen() {
 
   const handleAddRule = () => {
     const trimmed = addRuleInput.trim();
-    if (trimmed) {
-      addPrecedentRule(chain.id, trimmed);
-      setAddRuleInput('');
-      setShowAddRuleModal(false);
-      setLockedModalAdvances(false);
-      setShowLockedModal(true);
+    if (!trimmed) {
+      setAddRuleError(t('chainSettings_ruleEmpty'));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
     }
+
+    addPrecedentRule(chain.id, trimmed);
+    setAddRuleInput('');
+    setAddRuleError(null);
+    setShowAddRuleModal(false);
+    setLockedModalAdvances(false);
+    setShowLockedModal(true);
   };
 
   const onLockedModalConfirm = () => {
@@ -529,7 +540,7 @@ export default function ChainSettingsScreen() {
           <View style={styles.stepContent}>
             <Text style={styles.sectionTitle}>下必为例规则</Text>
             <Text style={styles.rulesHint}>
-              每一次例外都将被永久记录 · 下必为例
+              在此记录每次专注中允许暂停的例外情况
             </Text>
             <FlatList
               data={chain.precedentRules}
@@ -619,31 +630,39 @@ export default function ChainSettingsScreen() {
           style={styles.addRuleOverlay}
         >
           <View style={styles.addRuleContainer}>
-            <Text style={styles.addRuleTitle}>添加下必为例规则</Text>
+            <Text style={styles.addRuleTitle}>{t('chainSettings_addRuleTitle')}</Text>
             <Text style={styles.addRuleSubtitle}>
-              添加后不可修改或删除
+              {t('chainSettings_addRuleSubtitle')}
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="例如：中途拿快递"
+              placeholder={t('chainSettings_addRulePlaceholder')}
               placeholderTextColor={themeColors.textMuted}
               value={addRuleInput}
-              onChangeText={setAddRuleInput}
+                onChangeText={(text) => {
+                  setAddRuleInput(text);
+                  if (addRuleError) {
+                    setAddRuleError(null);
+                  }
+                }}
               multiline
               autoFocus
             />
+            {addRuleError ? (
+              <Text style={styles.errorText}>{addRuleError}</Text>
+            ) : null}
             <View style={styles.addRuleActions}>
-              <Pressable
+              <HeavyButton
+                title={t('common_cancel')}
                 onPress={() => {
                   setShowAddRuleModal(false);
                   setAddRuleInput('');
                 }}
+                variant="secondary"
                 style={styles.addRuleCancelBtn}
-              >
-                <Text style={styles.addRuleCancelText}>取消</Text>
-              </Pressable>
+              />
               <HeavyButton
-                title="添加"
+                title={t('common_add')}
                 onPress={handleAddRule}
                 variant="primary"
                 style={styles.addRuleSubmitBtn}
@@ -875,15 +894,15 @@ function createStyles(
     marginTop: spacing.lg,
   },
   addRuleCancelBtn: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  addRuleCancelText: {
-    ...typography.body,
-    color: c.textMuted,
+    minWidth: 140,
   },
   addRuleSubmitBtn: {
     minWidth: 140,
+  },
+  errorText: {
+    ...typography.serif.body,
+    color: colors.destructionBase,
+    marginTop: spacing.sm,
   },
   });
 }

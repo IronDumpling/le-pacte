@@ -13,6 +13,7 @@ import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { useTypography } from '../design/typography';
+import { HeavyButton } from '../design/components';
 import { useFonts } from 'expo-font';
 import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
@@ -63,9 +64,12 @@ export function PauseModal({
           contentContainerStyle={styles.list}
         />
         <View style={styles.footer}>
-          <Pressable onPress={onBack} style={styles.backBtn}>
-            <Text style={[styles.backText, { color: themeColors.accent }]}>{t('common_back')}</Text>
-          </Pressable>
+          <HeavyButton
+            title={t('common_back')}
+            onPress={onBack}
+            variant="secondary"
+            style={styles.backBtn}
+          />
         </View>
       </SafeAreaView>
     </Modal>
@@ -135,12 +139,6 @@ const makeStyles = (
       alignItems: 'center',
     },
     backBtn: {
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.xl,
-    },
-    backText: {
-      // Back button is a general control → keep sans body
-      ...typography.body,
-      color: colors.accent,
+      minWidth: 160,
     },
   });
