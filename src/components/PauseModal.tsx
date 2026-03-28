@@ -47,7 +47,7 @@ export function PauseModal({
           data={precedentRules}
           keyExtractor={(_, i) => i.toString()}
           renderItem={({ item, index }) => {
-            const nodePart = item.nodeIndex >= 0 ? `节点${item.nodeIndex + 1}` : '预设';
+            const nodePart = item.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(item.nodeIndex + 1) }) : t('chain_preset');
             const line = `第${index + 1}条，添加于${nodePart}，「${item.text}」`;
             return (
               <Pressable

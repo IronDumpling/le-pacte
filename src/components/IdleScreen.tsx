@@ -807,7 +807,7 @@ function ChainDetailModal({
               <Text style={[modalStyles.emptyRules, { color: themeColors.textMuted }]}>{t('chain_noRules')}</Text>
             ) : (
               rules.map((r, i) => {
-                const nodePart = r.nodeIndex >= 0 ? `节点${r.nodeIndex + 1}` : '预设';
+                const nodePart = r.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(r.nodeIndex + 1) }) : t('chain_preset');
                 const line = `第${i + 1}条，添加于${nodePart}，「${r.text}」`;
                 return (
                   <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>

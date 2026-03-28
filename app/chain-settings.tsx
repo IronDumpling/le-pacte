@@ -144,7 +144,7 @@ export default function ChainSettingsScreen() {
   if (!chain) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.error}>契约链不存在</Text>
+        <Text style={styles.error}>{t('chain_notFound')}</Text>
       </SafeAreaView>
     );
   }
@@ -358,13 +358,11 @@ export default function ChainSettingsScreen() {
         const locked = chain.reservationDurationLocked === true;
         return (
           <View style={styles.stepContent}>
-            <Text style={styles.sectionTitle}>预定时间</Text>
-            <Text style={styles.sectionSubtitle}>
-              按下预定后，契约将在多久后开始
-            </Text>
+            <Text style={styles.sectionTitle}>{t('chainSettings_reservation')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('chainSettings_reservationSubtitle')}</Text>
             {locked ? (
               <Text style={[styles.lockedText, typography.chainNumber]}>
-                已设置：{getReservationLabelFromDurationMs(chain.reservationDurationMs)}
+                {t('chainSettings_themeLocked', { value: getReservationLabelFromDurationMs(chain.reservationDurationMs) })}
               </Text>
             ) : (
               <View style={styles.pickerWrapper}>
@@ -408,22 +406,20 @@ export default function ChainSettingsScreen() {
         const locked = chain.focusTargetMs !== null;
         return (
           <View style={styles.stepContent}>
-            <Text style={styles.sectionTitle}>专注时间长度</Text>
-            <Text style={styles.sectionSubtitle}>每次契约的持续时长</Text>
+            <Text style={styles.sectionTitle}>{t('chainSettings_focusDuration')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('chainSettings_focusDurationSubtitle')}</Text>
             {locked ? (
               <Text style={[styles.lockedText, typography.chainNumber]}>
-                已设置：
                 {(() => {
-                  const { hours, minutes } = msToHoursMinutes(
-                    chain.focusTargetMs!
-                  );
-                  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                  const { hours, minutes } = msToHoursMinutes(chain.focusTargetMs!);
+                  const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                  return t('chainSettings_themeLocked', { value: formattedTime });
                 })()}
               </Text>
             ) : (
               <View style={styles.focusTimeRow}>
                 <View style={styles.focusPickerColumn}>
-                  <Text style={styles.focusTimeLabel}>小时</Text>
+                  <Text style={styles.focusTimeLabel}>{t('chainSettings_hours')}</Text>
                   <View style={styles.pickerWrapper}>
                     <View style={styles.pickerHighlight} />
                     <ScrollView
@@ -459,7 +455,7 @@ export default function ChainSettingsScreen() {
                   </View>
                 </View>
                 <View style={styles.focusPickerColumn}>
-                  <Text style={styles.focusTimeLabel}>分钟</Text>
+                  <Text style={styles.focusTimeLabel}>{t('chainSettings_minutes')}</Text>
                   <View style={styles.pickerWrapper}>
                     <View style={styles.pickerHighlight} />
                     <ScrollView
@@ -497,14 +493,14 @@ export default function ChainSettingsScreen() {
         const locked = chain.theme !== null;
         return (
           <View style={styles.stepContent}>
-            <Text style={styles.sectionTitle}>主题</Text>
-            <Text style={styles.sectionSubtitle}>本契约专注的目的。</Text>
+            <Text style={styles.sectionTitle}>{t('chainSettings_theme')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('chainSettings_themeSubtitle')}</Text>
             {locked ? (
-              <Text style={styles.lockedText}>已设置：{chain.theme}</Text>
+              <Text style={styles.lockedText}>{t('chainSettings_themeLocked', { value: chain.theme! })}</Text>
             ) : (
               <TextInput
                 style={styles.input}
-                placeholder="例如：完成工作报告（留空默认为专注）"
+                placeholder={t('chainSettings_themePlaceholder')}
                 placeholderTextColor={themeColors.textMuted}
                 value={theme}
                 onChangeText={setTheme}
@@ -517,16 +513,14 @@ export default function ChainSettingsScreen() {
         const locked = chain.triggerRitual !== null;
         return (
           <View style={styles.stepContent}>
-            <Text style={styles.sectionTitle}>契约触发仪式</Text>
-            <Text style={styles.sectionSubtitle}>
-              做出这个动作时，将视作契约开始。
-            </Text>
+            <Text style={styles.sectionTitle}>{t('chainSettings_ritual')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('chainSettings_ritualSubtitle')}</Text>
             {locked ? (
-              <Text style={styles.lockedText}>已设置：{chain.triggerRitual}</Text>
+              <Text style={styles.lockedText}>{t('chainSettings_ritualLocked', { value: chain.triggerRitual! })}</Text>
             ) : (
               <TextInput
                 style={styles.input}
-                placeholder="例如：入座、戴上耳机（留空默认为开始）"
+                placeholder={t('chainSettings_ritualPlaceholder')}
                 placeholderTextColor={themeColors.textMuted}
                 value={triggerRitual}
                 onChangeText={setTriggerRitual}
@@ -538,10 +532,8 @@ export default function ChainSettingsScreen() {
       case 4: {
         return (
           <View style={styles.stepContent}>
-            <Text style={styles.sectionTitle}>下必为例规则</Text>
-            <Text style={styles.rulesHint}>
-              在此记录每次专注中允许暂停的例外情况
-            </Text>
+            <Text style={styles.sectionTitle}>{t('chainSettings_rules')}</Text>
+            <Text style={styles.rulesHint}>{t('chainSettings_rulesHint')}</Text>
             <FlatList
               data={chain.precedentRules}
               keyExtractor={(_, i) => i.toString()}
@@ -556,7 +548,7 @@ export default function ChainSettingsScreen() {
                   onPress={() => setShowAddRuleModal(true)}
                 >
                   <Text style={styles.addRulePlus}>+</Text>
-                  <Text style={styles.addRuleHint}>添加规则</Text>
+                  <Text style={styles.addRuleHint}>{t('chainSettings_addRule')}</Text>
                 </Pressable>
               }
               scrollEnabled={false}
@@ -573,9 +565,9 @@ export default function ChainSettingsScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={16}>
-          <Text style={styles.backText}>← 返回</Text>
+          <Text style={styles.backText}>{t('common_back')}</Text>
         </Pressable>
-        <Text style={styles.title}>契约链设置</Text>
+        <Text style={styles.title}>{t('chainSettings_title')}</Text>
         <View style={styles.progressBar}>
           <View
             style={[styles.progressFill, { width: `${progress * 100}%` }]}
@@ -588,14 +580,14 @@ export default function ChainSettingsScreen() {
       <View style={styles.footer}>
         {currentStep === 4 ? (
           <HeavyButton
-            title="完成"
+            title={t('common_done')}
             onPress={handleNextStep}
             variant="primary"
             style={styles.nextButton}
           />
         ) : (
           <HeavyButton
-            title="保存"
+            title={t('common_save')}
             onPress={handleSavePress}
             variant="primary"
             style={styles.nextButton}
@@ -615,8 +607,8 @@ export default function ChainSettingsScreen() {
       <LockedConfirmModal
         visible={showShortContractError}
         onConfirm={() => setShowShortContractError(false)}
-        title="提示"
-        subtitle="你不能缔结这样短暂的契约"
+        title={t('chainSettings_hint')}
+        subtitle={t('chainSettings_shortContract')}
       />
 
       <LockedConfirmModal
