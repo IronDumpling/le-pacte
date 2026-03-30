@@ -17,7 +17,7 @@ interface LocaleContextValue {
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('zh');
+  const [locale, setLocaleState] = useState<Locale>('en');
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -42,8 +42,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     return (
       <LocaleContext.Provider
         value={{
-          locale: 'zh',
-          t: (key, params) => translate('zh', key, params),
+          locale: 'en',
+          t: (key, params) => translate('en', key, params),
           setLocale,
         }}
       >
