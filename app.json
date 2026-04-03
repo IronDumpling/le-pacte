@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "le-pacte",
+    "name": "PA:CT",
     "slug": "le-pacte",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "lepacte",
+    "scheme": "PA:CT",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chari.pact",
+      "bundleIdentifier": "com.chariron.pact",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -27,7 +27,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.char_iron.lepacte"
+      "package": "com.char_iron.pact"
     },
     "web": {
       "favicon": "./assets/favicon.png"
