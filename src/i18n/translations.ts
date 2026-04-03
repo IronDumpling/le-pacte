@@ -109,6 +109,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     precedentRules_title: '例外规则',
     precedentRules_subtitle: '每一次例外都将被永久记录',
     precedentRules_emptyHint: '选择「允许本次例外」时会在此记录',
+
+    time_seconds: '{n}秒',
+    time_minutes: '{n}分钟',
+
+    idle_focusDurationLabel: '专注时长：',
+    idle_ruleWithText: '第{n}条，「{text}」',
+    idle_ruleAddedAt: '第{n}条，添加于{session}，「{text}」',
+    idle_pauseDetail: '在{time}，暂停{duration}，引用规则第{n}条',
+    idle_totalFocusHoursMinutes: '已执行专注{hours}小时{minutes}分钟',
+    idle_totalFocusMinutes: '已执行专注{minutes}分钟',
+
+    locked_savedTitle: '已保存',
   },
   en: {
     common_back: '← Back',
@@ -160,10 +172,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_recordException: 'Record this exception',
     dilemma_inputHint: 'This rule is permanent — you must allow it in every future session',
     dilemma_placeholder: 'e.g. picking up a package',
-    dilemma_writeRule: 'Add exception rule',
-    dilemma_admitFailure: 'Give up and reset progress',
-    dilemma_admitFailureDestroy: 'Give up (will clear {n} sessions)',
-    dilemma_allowException: 'Allow this exception',
+    dilemma_writeRule: 'Write Rule',
+    dilemma_admitFailure: 'Give Up And Reset Progress',
+    dilemma_admitFailureDestroy: 'Give Up And Clear {n} Sessions',
+    dilemma_allowException: 'Allow This Exception',
     dilemma_ruleEmpty: 'Rule cannot be empty',
 
     locked_confirm: 'OK',
@@ -173,7 +185,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     pause_title: 'Choose pause reason',
     pause_subtitle: 'Exception rules',
 
-    focus_backContinue: '← Back to continue',
+    focus_backContinue: '← Back To Continue',
     focus_complete: 'Complete',
     focus_pause: 'Pause',
     focus_exit: 'Exit',
@@ -202,7 +214,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     chainSettings_ritualLocked: 'Set: {value}',
     chainSettings_rules: 'Exception rules',
     chainSettings_rulesHint: 'Record allowed reasons to pause during a session',
-    chainSettings_addRule: 'Add rule',
+    chainSettings_addRule: 'Add Rule',
     chainSettings_addRuleTitle: 'Add exception rule',
     chainSettings_addRuleSubtitle: 'Describe an allowed reason to pause',
     chainSettings_addRulePlaceholder: 'e.g. picking up a package',
@@ -213,6 +225,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     precedentRules_title: 'Exception Rules',
     precedentRules_subtitle: 'Every exception is permanently recorded',
     precedentRules_emptyHint: 'Recorded when you choose "Allow this exception"',
+
+    time_seconds: '{n}s',
+    time_minutes: '{n} min',
+
+    idle_focusDurationLabel: 'Duration: ',
+    idle_ruleWithText: 'Rule #{n}: "{text}"',
+    idle_ruleAddedAt: 'Rule #{n}, added at {session}: "{text}"',
+    idle_pauseDetail: 'At {time}, paused {duration}, rule #{n}',
+    idle_totalFocusHoursMinutes: 'Total focus: {hours}h {minutes}min',
+    idle_totalFocusMinutes: 'Total focus: {minutes} min',
+
+    locked_savedTitle: 'Saved',
   },
   fr: {
     common_back: '← Retour',
@@ -266,7 +290,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_placeholder: 'ex. aller chercher un colis',
     dilemma_writeRule: "Ajouter une règle d'exception",
     dilemma_admitFailure: 'Abandonner et réinitialiser',
-    dilemma_admitFailureDestroy: 'Abandonner (effacera {n} séances)',
+    dilemma_admitFailureDestroy: 'Abandonner et effacer {n} séances',
     dilemma_allowException: 'Autoriser cette exception',
     dilemma_ruleEmpty: 'La règle ne peut pas être vide',
 
@@ -317,6 +341,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     precedentRules_title: "Règles d'exception",
     precedentRules_subtitle: 'Chaque exception est enregistrée définitivement',
     precedentRules_emptyHint: "Enregistré lorsque vous autorisez une exception",
+
+    time_seconds: '{n}s',
+    time_minutes: '{n} min',
+
+    idle_focusDurationLabel: 'Durée : ',
+    idle_ruleWithText: 'Règle #{n} : « {text} »',
+    idle_ruleAddedAt: 'Règle #{n} ({session}) : « {text} »',
+    idle_pauseDetail: 'À {time}, pause de {duration}, règle #{n}',
+    idle_totalFocusHoursMinutes: 'Concentration totale : {hours}h {minutes}min',
+    idle_totalFocusMinutes: 'Concentration totale : {minutes} min',
+
+    locked_savedTitle: 'Enregistré',
   },
   ja: {
     common_back: '← 戻る',
@@ -370,7 +406,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_placeholder: '例：宅配便を受け取る',
     dilemma_writeRule: '例外ルールを追加',
     dilemma_admitFailure: '諦めて進捗をリセット',
-    dilemma_admitFailureDestroy: '諦める（{n} 回分の記録が消えます）',
+    dilemma_admitFailureDestroy: '諦めて {n} 回分の記録を消去',
     dilemma_allowException: '今回の例外を許可',
     dilemma_ruleEmpty: 'ルールを空にすることはできません',
 
@@ -421,6 +457,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     precedentRules_title: '例外ルール',
     precedentRules_subtitle: 'すべての例外は永久に記録されます',
     precedentRules_emptyHint: '「今回の例外を許可」を選択した際に記録されます',
+
+    time_seconds: '{n}秒',
+    time_minutes: '{n}分',
+
+    idle_focusDurationLabel: '集中時間：',
+    idle_ruleWithText: 'ルール#{n}：「{text}」',
+    idle_ruleAddedAt: 'ルール#{n}（{session}で追加）：「{text}」',
+    idle_pauseDetail: '{time}に{duration}一時停止、ルール#{n}',
+    idle_totalFocusHoursMinutes: '合計集中：{hours}時間{minutes}分',
+    idle_totalFocusMinutes: '合計集中：{minutes}分',
+
+    locked_savedTitle: '保存済み',
   },
 };
 

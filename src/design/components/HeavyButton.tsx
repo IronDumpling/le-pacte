@@ -84,7 +84,7 @@ const makeStyles = (typography: ReturnType<typeof useTypography>) =>
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 200,
+    minWidth: 120,
   },
   text: {
     ...typography.button,

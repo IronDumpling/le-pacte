@@ -246,15 +246,16 @@ const makeStyles = (
         },
     inputActions: {
       flexDirection: 'row',
-      justifyContent: 'flex-end',
       gap: spacing.md,
       marginTop: spacing.lg,
     },
     cancelBtn: {
-      minWidth: 140,
+      flex: 1,
+      minWidth: 0,
     },
     submitBtn: {
-      minWidth: 140,
+      flex: 1,
+      minWidth: 0,
     },
     backBtn: {
       marginTop: spacing.xl,

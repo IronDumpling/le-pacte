@@ -219,9 +219,9 @@ function ChainNodeList({
   );
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 60_000) return `${Math.floor(ms / 1000)}秒`;
-  return `${Math.floor(ms / 60_000)}分钟`;
+function formatDuration(ms: number, t: (k: string, p?: Record<string, string>) => string): string {
+  if (ms < 60_000) return t('time_seconds', { n: String(Math.floor(ms / 1000)) });
+  return t('time_minutes', { n: String(Math.floor(ms / 60_000)) });
 }
 
 function formatElapsedToMmSs(ms: number): string {
@@ -422,7 +422,7 @@ function ChainNodeRow({
           {isExpanded && (
             <View style={chainNodeStyles.expandedContent}>
               <Text style={chainNodeStyles.detailItem}>
-                专注时长：{formatDurationAsHhMmSs(focusTargetMs + (extraDurationMs ?? 0))}
+                {t('idle_focusDurationLabel')}{formatDurationAsHhMmSs(focusTargetMs + (extraDurationMs ?? 0))}
               </Text>
               {rules.length > 0 && (
                 <>
@@ -432,7 +432,7 @@ function ChainNodeRow({
                       key={r.ruleIndex}
                       style={[chainNodeStyles.detailRuleItem, ruleTextStyle]}
                     >
-                      第{r.ruleIndex}条，「{r.text}」
+                      {t('idle_ruleWithText', { n: String(r.ruleIndex), text: r.text })}
                     </Text>
                   ))}
                 </>
@@ -447,7 +447,7 @@ function ChainNodeRow({
                         : ((p as { atMinute?: number }).atMinute ?? 0) * 60_000;
                     return (
                       <Text key={i} style={chainNodeStyles.detailItem}>
-                        在{formatElapsedToMmSs(atMs)}，暂停{formatDuration(p.durationMs)}，引用规则第{p.ruleIndex}条
+                        {t('idle_pauseDetail', { time: formatElapsedToMmSs(atMs), duration: formatDuration(p.durationMs, t), n: String(p.ruleIndex) })}
                       </Text>
                     );
                   })}
@@ -808,7 +808,7 @@ function ChainDetailModal({
             ) : (
               rules.map((r, i) => {
                 const nodePart = r.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(r.nodeIndex + 1) }) : t('chain_preset');
-                const line = `第${i + 1}条，添加于${nodePart}，「${r.text}」`;
+                const line = t('idle_ruleAddedAt', { n: String(i + 1), session: nodePart, text: r.text });
                 return (
                   <View key={i} style={[modalStyles.ruleItem, { backgroundColor: themeColors.background }]}>
                     <Text
@@ -1218,9 +1218,9 @@ function ChainCard({
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     if (hours > 0) {
-      totalFocusLabel = `已执行契约${hours}小时${minutes}分钟`;
+      totalFocusLabel = t('idle_totalFocusHoursMinutes', { hours: String(hours), minutes: String(minutes) });
     } else {
-      totalFocusLabel = `已执行契约${minutes}分钟`;
+      totalFocusLabel = t('idle_totalFocusMinutes', { minutes: String(minutes) });
     }
   }
 
@@ -2145,6 +2145,7 @@ function useIdleStyles() {
   },
   deleteModalCancel: {
     flex: 1,
+    minWidth: 0,
     padding: spacing.md,
     alignItems: 'center',
     backgroundColor: colors.backgroundSecondary,
@@ -2156,6 +2157,7 @@ function useIdleStyles() {
   },
   deleteModalConfirm: {
     flex: 1,
+    minWidth: 0,
     padding: spacing.md,
     alignItems: 'center',
     backgroundColor: colors.destructionBase,

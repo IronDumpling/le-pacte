@@ -36,20 +36,10 @@ const PICKER_VISIBLE_ITEMS = 5;
 const HOURS_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES_OPTIONS = Array.from({ length: 60 }, (_, i) => i);
 
-function findReservationOptionByDurationMs(ms: number): ReservationOption | undefined {
-  return RESERVATION_OPTIONS.find((opt) => opt.durationMs === ms);
-}
-
-function getReservationLabelFromDurationMs(ms: number): string {
-  const matched = findReservationOptionByDurationMs(ms);
-  if (matched) return matched.label;
-  // 回退：用分钟数显示
-  const minutes = Math.round(ms / 60000);
-  if (minutes <= 0) {
-    const seconds = Math.round(ms / 1000);
-    return `${seconds}秒`;
-  }
-  return `${minutes}分钟`;
+function getReservationLabel(ms: number, t: (k: string, p?: Record<string, string>) => string): string {
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return t('time_seconds', { n: String(seconds) });
+  return t('time_minutes', { n: String(Math.round(ms / 60000)) });
 }
 
 function getInitialStep(chain: {
@@ -102,7 +92,7 @@ export default function ChainSettingsScreen() {
     [themeColors, typography]
   );
   const [currentStep, setCurrentStep] = useState(0);
-  const [theme, setTheme] = useState(chain?.theme ?? '专注');
+  const [theme, setTheme] = useState(chain?.theme ?? t('idle_defaultTheme'));
   const [triggerRitual, setTriggerRitual] = useState(
     chain?.triggerRitual ?? ''
   );
@@ -136,7 +126,7 @@ export default function ChainSettingsScreen() {
         setFocusHours(hours);
         setFocusMinutes(minutes);
       }
-      setTheme(chain.theme ?? '专注');
+      setTheme(chain.theme ?? t('idle_defaultTheme'));
       setTriggerRitual(chain.triggerRitual ?? '');
     }
   }, [chain?.id]);
@@ -180,7 +170,7 @@ export default function ChainSettingsScreen() {
   };
 
   const executeThemeSave = () => {
-    const value = theme.trim() ? theme.trim() : '专注';
+    const value = theme.trim() ? theme.trim() : t('idle_defaultTheme');
     updateChain(chain.id, { theme: value });
     setShowSaveConfirmModal(false);
     setPendingSaveStep(null);
@@ -188,7 +178,7 @@ export default function ChainSettingsScreen() {
   };
 
   const executeTriggerSave = () => {
-    const value = triggerRitual.trim() ? triggerRitual.trim() : '开始';
+    const value = triggerRitual.trim() ? triggerRitual.trim() : t('reserved_start');
     updateChain(chain.id, { triggerRitual: value });
     setShowSaveConfirmModal(false);
     setPendingSaveStep(null);
@@ -362,7 +352,7 @@ export default function ChainSettingsScreen() {
             <Text style={styles.sectionSubtitle}>{t('chainSettings_reservationSubtitle')}</Text>
             {locked ? (
               <Text style={[styles.lockedText, typography.chainNumber]}>
-                {t('chainSettings_themeLocked', { value: getReservationLabelFromDurationMs(chain.reservationDurationMs) })}
+                {t('chainSettings_themeLocked', { value: getReservationLabel(chain.reservationDurationMs, t) })}
               </Text>
             ) : (
               <View style={styles.pickerWrapper}>
@@ -390,7 +380,7 @@ export default function ChainSettingsScreen() {
                           ]}
                         >
                           <Text style={styles.pickerItemNumber}>
-                            {opt.label}
+                            {getReservationLabel(opt.durationMs, t)}
                           </Text>
                         </Text>
                       </View>
@@ -881,15 +871,16 @@ function createStyles(
   },
   addRuleActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     gap: spacing.md,
     marginTop: spacing.lg,
   },
   addRuleCancelBtn: {
-    minWidth: 140,
+    flex: 1,
+    minWidth: 0,
   },
   addRuleSubmitBtn: {
-    minWidth: 140,
+    flex: 1,
+    minWidth: 0,
   },
   errorText: {
     ...typography.serif.body,

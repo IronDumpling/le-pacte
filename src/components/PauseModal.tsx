@@ -48,7 +48,7 @@ export function PauseModal({
           keyExtractor={(_, i) => i.toString()}
           renderItem={({ item, index }) => {
             const nodePart = item.nodeIndex >= 0 ? t('chain_nodeLabel', { n: String(item.nodeIndex + 1) }) : t('chain_preset');
-            const line = `第${index + 1}条，添加于${nodePart}，「${item.text}」`;
+            const line = t('idle_ruleAddedAt', { n: String(index + 1), session: nodePart, text: item.text });
             return (
               <Pressable
                 onPress={() => onSelect(index + 1, item.text)}
