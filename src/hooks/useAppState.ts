@@ -16,7 +16,7 @@ export function useAppState() {
 
       if (appState.current === 'active' && nextState === 'background') {
         if (store.currentState === 'FOCUSED') {
-          store.triggerDilemma();
+          store.triggerDilemma('minimize');
         }
       }
       appState.current = nextState;

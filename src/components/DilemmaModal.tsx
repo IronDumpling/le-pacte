@@ -21,7 +21,7 @@ import { useFonts } from 'expo-font';
 import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
 export function DilemmaModal() {
-  const { chooseDestruction, chooseCompromise, returnToFocus, chains, activeChainId } = usePacteStore();
+  const { chooseDestruction, chooseCompromise, returnToFocus, chains, activeChainId, dilemmaSource } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t, locale } = useLocale();
   const typography = useTypography();
@@ -135,9 +135,11 @@ export function DilemmaModal() {
               variant="secondary"
               style={styles.optionButton}
             />
-            <Pressable onPress={returnToFocus} style={styles.backBtn}>
-              <Text style={[styles.backText, { color: themeColors.accent }]}>{t('common_back')}</Text>
-            </Pressable>
+            {dilemmaSource !== 'minimize' && (
+              <Pressable onPress={returnToFocus} style={styles.backBtn}>
+                <Text style={[styles.backText, { color: themeColors.accent }]}>{t('common_back')}</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </SafeAreaView>

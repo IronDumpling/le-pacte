@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useKeepAwake } from 'expo-keep-awake';
 import { usePacteStore } from '../store/pacteStore';
 import { HeavyButton, CircularProgressBar } from '../design/components';
 import { useReservedCountdown, formatMsToTime } from '../hooks/useTimer';
@@ -15,6 +16,7 @@ const LAST_PHASE_MS = 20 * 1000;
 const TIMER_RING_SIZE = 240;
 
 export function ReservedScreen() {
+  useKeepAwake();
   const { chains, activeChainId, reservedAt, enterFocus, timeoutReserved } =
     usePacteStore();
   const { colors: themeColors } = useTheme();

@@ -4,6 +4,7 @@ import type { Chain, NodeMetadata, NodePause } from '../types/chain';
 import { createDefaultChain } from '../types/chain';
 
 export type PacteStateType = 'IDLE' | 'RESERVED' | 'FOCUSED' | 'DILEMMA';
+export type DilemmaSource = 'minimize' | 'exit' | null;
 
 export type IdleAnimationType = 'success' | 'break' | null;
 
@@ -33,6 +34,7 @@ interface PacteState {
   lastIdleAnimation: IdleAnimationType;
   pendingDestructionChainId: string | null;
   destructionStartedAt: number | null;
+  dilemmaSource: DilemmaSource;
   _hydrated: boolean;
 }
 
@@ -50,7 +52,7 @@ interface PacteActions {
   enterFocus: () => void;
   timeoutReserved: () => void;
   completeFocus: () => void;
-  triggerDilemma: () => void;
+  triggerDilemma: (source?: DilemmaSource) => void;
   triggerPause: (ruleIndex: number, ruleText: string) => void;
   chooseDestruction: () => void;
   finalizeDestruction: (chainId: string) => void;
@@ -85,14 +87,16 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   lastIdleAnimation: null,
   pendingDestructionChainId: null,
   destructionStartedAt: null,
+  dilemmaSource: null,
   _hydrated: false,
 
   hydrate: async () => {
-    const [chains, archivedChains, pinnedArchivedChainIds, storedActiveId] = await Promise.all([
+    const [chains, archivedChains, pinnedArchivedChainIds, storedActiveId, focusedStartedAtStored] = await Promise.all([
       storage.getChains(),
       storage.getArchivedChains(),
       storage.getPinnedArchivedChainIds(),
       storage.getActiveChainId(),
+      storage.getFocusedStartedAt(),
     ]);
     let finalChains = chains.length > 0 ? chains : [createDefaultChain()];
     if (chains.length > 0) {
@@ -134,11 +138,25 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     if (validActiveId && validActiveId !== storedActiveId) {
       storage.setActiveChainId(validActiveId);
     }
+    // If focusedStartedAt is persisted, the app was killed during a FOCUSED session.
+    // Treat this as a failure: reset the active chain's length and clear the session.
+    let finalChainsAfterKill = finalChains;
+    if (focusedStartedAtStored !== null && validActiveId) {
+      finalChainsAfterKill = finalChains.map((c) =>
+        c.id === validActiveId
+          ? { ...c, length: 0, precedentRules: [], nodeMetadata: undefined }
+          : c
+      );
+      persistChains(finalChainsAfterKill);
+      storage.setFocusedStartedAt(null);
+    }
+
     set({
-      chains: finalChains,
+      chains: finalChainsAfterKill,
       archivedChains: archivedChains ?? [],
       pinnedArchivedChainIds: pinnedArchivedChainIds ?? [],
       activeChainId: validActiveId,
+      lastIdleAnimation: focusedStartedAtStored !== null ? 'break' : null,
       _hydrated: true,
     });
   },
@@ -342,11 +360,11 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     storage.setFocusedStartedAt(null);
   },
 
-  triggerDilemma: () => {
+  triggerDilemma: (source: DilemmaSource = 'exit') => {
     const { currentState, focusedStartedAt } = get();
     if (currentState !== 'FOCUSED') return;
     const frozenElapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
-    set({ currentState: 'DILEMMA', frozenElapsedMs });
+    set({ currentState: 'DILEMMA', frozenElapsedMs, dilemmaSource: source });
   },
 
   triggerPause: (ruleIndex: number, ruleText: string) => {
@@ -373,7 +391,9 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       lastIdleAnimation: 'break',
       pendingDestructionChainId: activeChainId,
       destructionStartedAt: now,
+      dilemmaSource: null,
     });
+    storage.setFocusedStartedAt(null);
   },
 
   finalizeDestruction: (chainId: string) => {
@@ -429,6 +449,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
         : null,
       currentSessionPauses: sessionPauses,
       focusedStartedAt: newFocusedStartedAt,
+      dilemmaSource: null,
     });
     persistChains(next);
     storage.setFocusedStartedAt(newFocusedStartedAt);
@@ -445,6 +466,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       frozenElapsedMs: null,
       pauseReason: null,
       focusedStartedAt: newFocusedStartedAt,
+      dilemmaSource: null,
     });
     storage.setFocusedStartedAt(newFocusedStartedAt);
   },
