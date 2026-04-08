@@ -53,7 +53,6 @@ interface PacteActions {
   timeoutReserved: () => void;
   completeFocus: () => void;
   triggerDilemma: (source?: DilemmaSource) => void;
-  triggerPause: (ruleIndex: number, ruleText: string) => void;
   chooseDestruction: () => void;
   finalizeDestruction: (chainId: string) => void;
   chooseCompromise: (exceptionText: string) => void;
@@ -366,19 +365,6 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
     if (currentState !== 'FOCUSED') return;
     const frozenElapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
     set({ currentState: 'DILEMMA', frozenElapsedMs, dilemmaSource: source });
-  },
-
-  triggerPause: (ruleIndex: number, ruleText: string) => {
-    const { focusedStartedAt, currentSessionPauses } = get();
-    const elapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
-    set({
-      frozenElapsedMs: elapsedMs,
-      pauseReason: { ruleIndex, text: ruleText },
-      currentSessionPauses: [
-        ...currentSessionPauses,
-        { atElapsedMs: elapsedMs, startMs: Date.now(), ruleIndex },
-      ],
-    });
   },
 
   chooseDestruction: () => {

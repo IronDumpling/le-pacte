@@ -11,12 +11,10 @@ import {
   formatMsToTime,
 } from '../hooks/useTimer';
 import { colors, spacing } from '../design/theme';
-import { useFonts } from 'expo-font';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { playPactCompleteSound } from '../audio/soundEffects';
 import { useTypography } from '../design/typography';
-import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
 const TIMER_RING_SIZE = 240;
 
@@ -33,8 +31,7 @@ export function FocusedScreen() {
     resumeFromPause,
   } = usePacteStore();
   const { colors: themeColors } = useTheme();
-  const { t, locale } = useLocale();
-  useFonts(getSerifFontsForLocale(locale));
+  const { t } = useLocale();
   const typography = useTypography();
   const styles = useMemo(() => makeStyles(typography), [typography]);
 

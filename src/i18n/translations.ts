@@ -72,7 +72,6 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     focus_backContinue: '← 返回继续',
     focus_complete: '完成结算',
-    focus_pause: '暂停',
     focus_exit: '退出',
     focus_extraHint: '已达目标 · 额外专注时间',
     focus_paused: '已暂停',
@@ -187,9 +186,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     pause_subtitle: 'Exception rules',
     pause_addRule: 'Add New Rule',
 
-    focus_backContinue: '← Back To Continue',
+    focus_backContinue: '← Resume',
     focus_complete: 'Complete',
-    focus_pause: 'Pause',
     focus_exit: 'Exit',
     focus_extraHint: 'Target reached · Extra focus time',
     focus_paused: 'Paused',
@@ -306,7 +304,6 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     focus_backContinue: '← Retour pour continuer',
     focus_complete: 'Terminer',
-    focus_pause: 'Pause',
     focus_exit: 'Quitter',
     focus_extraHint: 'Objectif atteint · Temps supplémentaire',
     focus_paused: 'En pause',
@@ -423,7 +420,6 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     focus_backContinue: '← 戻って続行',
     focus_complete: '完了',
-    focus_pause: '一時停止',
     focus_exit: '終了',
     focus_extraHint: '目標達成・追加時間',
     focus_paused: '一時停止中',
