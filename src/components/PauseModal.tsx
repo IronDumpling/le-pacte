@@ -14,24 +14,23 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { useTypography } from '../design/typography';
 import { HeavyButton } from '../design/components';
-import { useFonts } from 'expo-font';
-import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
 interface PauseModalProps {
   precedentRules: PrecedentRule[];
   onSelect: (ruleIndex: number, ruleText: string) => void;
   onBack: () => void;
+  serifLoaded: boolean;
 }
 
 export function PauseModal({
   precedentRules,
   onSelect,
   onBack,
+  serifLoaded,
 }: PauseModalProps) {
   const { colors: themeColors } = useTheme();
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const typography = useTypography();
-  const [serifLoaded] = useFonts(getSerifFontsForLocale(locale));
   const styles = useMemo(
     () => makeStyles(themeColors, typography, serifLoaded),
     [themeColors, typography, serifLoaded]

@@ -14,7 +14,7 @@ export function useAppState() {
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       const store = usePacteStore.getState();
 
-      if (appState.current === 'active' && nextState === 'background') {
+      if ((appState.current === 'active' || appState.current === 'inactive') && nextState === 'background') {
         if (store.currentState === 'FOCUSED') {
           store.triggerDilemma('minimize');
         }

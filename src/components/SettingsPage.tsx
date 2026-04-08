@@ -134,7 +134,7 @@ function createStyles(
     header: {
       padding: spacing.lg,
       borderBottomWidth: 1,
-      borderBottomColor: colors.backgroundSecondary,
+      borderBottomColor: colors.textMuted,
       alignItems: 'center',
     },
     title: {

@@ -1036,7 +1036,7 @@ function SwipeUpPageWrapper({
           translateY.value = withTiming(-ARCHIVE_REVEAL_HEIGHT, { duration: 150 });
           prevGesture.current = -ARCHIVE_REVEAL_HEIGHT;
         } else {
-          translateY.value = Math.max(0, next);
+          translateY.value = Math.min(0, next);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
@@ -1909,7 +1909,7 @@ export function IdleScreen({
 
   const renderArchivedPage = () => (
     <View style={styles.pageWrapper}>
-      <View style={styles.archivedHeader}>
+      <View style={[styles.archivedHeader, { borderBottomColor: themeColors.textMuted }]}>
         <Pressable
           onPress={() => {
             flatListRef.current?.scrollToIndex({
