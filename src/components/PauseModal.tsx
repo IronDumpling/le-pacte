@@ -7,7 +7,7 @@ import {
   Pressable,
   FlatList,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { PrecedentRule } from '../types/chain';
 import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
@@ -31,13 +31,14 @@ export function PauseModal({
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
   const typography = useTypography();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(
     () => makeStyles(themeColors, typography, serifLoaded),
     [themeColors, typography, serifLoaded]
   );
   return (
     <Modal visible animationType="fade">
-      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: themeColors.text }]}>{t('pause_title')}</Text>
           <Text style={[styles.subtitle, { color: themeColors.textMuted }]}>{t('pause_subtitle')}</Text>
@@ -70,7 +71,7 @@ export function PauseModal({
             style={styles.backBtn}
           />
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -90,27 +91,17 @@ const makeStyles = (
       borderBottomWidth: 1,
       borderBottomColor: themeColors.backgroundSecondary,
     },
-    title: serifLoaded
-      ? {
-          // Precedent selection is part of "case law" → use serif
-          ...typography.serif.title,
-          color: colors.text,
-        }
-      : {
-          ...typography.title,
-          color: colors.text,
-        },
-    subtitle: serifLoaded
-      ? {
-          ...typography.serif.subtitle,
-          color: colors.textMuted,
-          marginTop: spacing.sm,
-        }
-      : {
-          ...typography.body,
-          color: colors.textMuted,
-          marginTop: spacing.sm,
-        },
+    title: {
+      ...typography.title,
+      fontFamily: serifLoaded ? typography.serif.title.fontFamily : typography.title.fontFamily,
+      color: colors.text,
+    },
+    subtitle: {
+      ...typography.body,
+      fontFamily: serifLoaded ? typography.serif.subtitle.fontFamily : typography.body.fontFamily,
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+    },
     list: {
       padding: spacing.xl,
     },
@@ -123,16 +114,11 @@ const makeStyles = (
     ruleItemPressed: {
       opacity: 0.8,
     },
-    ruleText: serifLoaded
-      ? {
-          ...typography.serif.body,
-          color: colors.text,
-        }
-      : {
-          ...typography.body,
-          fontFamily: 'serif',
-          color: colors.text,
-        },
+    ruleText: {
+      ...typography.body,
+      fontFamily: serifLoaded ? typography.serif.body.fontFamily : typography.body.fontFamily,
+      color: colors.text,
+    },
     footer: {
       padding: spacing.xl,
       alignItems: 'center',

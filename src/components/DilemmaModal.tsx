@@ -124,7 +124,7 @@ export function DilemmaModal() {
 
           <View style={styles.options}>
             <HeavyButton
-              title={t('dilemma_admitFailureDestroy', { n: String(activeChainLength) })}
+              title={t('dilemma_admitFailureDestroy', { n: String(activeChainLength), sessions: activeChainLength <= 1 ? 'Session' : 'Sessions' })}
               onPress={handleDestruction}
               variant="destruction"
               style={styles.optionButton}

@@ -1024,11 +1024,8 @@ function SwipeUpPageWrapper({
         const { dy } = gestureState;
         const next = prevGesture.current + dy;
         if (hasSnappedThisGesture.current) {
-          if (prevGesture.current < 0 && next > -ARCHIVE_REVEAL_HEIGHT + ARCHIVE_SNAP_THRESHOLD) {
-            hasSnappedThisGesture.current = false;
-            translateY.value = withTiming(0, { duration: 150 });
-            prevGesture.current = 0;
-          }
+          // Archive is open: track finger smoothly between open and closed
+          translateY.value = Math.min(0, Math.max(-ARCHIVE_REVEAL_HEIGHT, next));
           return;
         }
         if (next < -ARCHIVE_SNAP_THRESHOLD) {
@@ -1040,7 +1037,6 @@ function SwipeUpPageWrapper({
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (hasSnappedThisGesture.current) return;
         const { dy, vy } = gestureState;
         const next = prevGesture.current + dy;
         if (next < -ARCHIVE_SNAP_THRESHOLD || vy < -0.2) {

@@ -174,7 +174,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     dilemma_placeholder: 'e.g. picking up a package',
     dilemma_writeRule: 'Write Rule',
     dilemma_admitFailure: 'Give Up And Reset Progress',
-    dilemma_admitFailureDestroy: 'Give Up And Clear {n} Sessions',
+    dilemma_admitFailureDestroy: 'Give Up And Clear {n} {sessions}',
     dilemma_allowException: 'Allow This Exception',
     dilemma_ruleEmpty: 'Rule cannot be empty',
 
