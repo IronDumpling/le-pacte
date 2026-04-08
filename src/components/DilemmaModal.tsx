@@ -4,8 +4,9 @@ import {
   Text,
   StyleSheet,
   Modal,
-  TextInput,
   Pressable,
+  FlatList,
+  TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -20,8 +21,18 @@ import { useTypography } from '../design/typography';
 import { useFonts } from 'expo-font';
 import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 
+type DilemmaView = 'main' | 'pauseSelect' | 'addRule';
+
 export function DilemmaModal() {
-  const { chooseDestruction, chooseCompromise, returnToFocus, chains, activeChainId, dilemmaSource } = usePacteStore();
+  const {
+    chooseDestruction,
+    chooseCompromise,
+    chooseExistingRule,
+    returnToFocus,
+    chains,
+    activeChainId,
+    dilemmaSource,
+  } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t, locale } = useLocale();
   const typography = useTypography();
@@ -30,91 +41,156 @@ export function DilemmaModal() {
     () => makeStyles(themeColors, typography, serifLoaded),
     [themeColors, typography, serifLoaded]
   );
-  const [exceptionText, setExceptionText] = useState('');
-  const [showInput, setShowInput] = useState(false);
-  const [errorText, setErrorText] = useState<string | null>(null);
-  const activeChainLength =
-    (activeChainId ? chains.find((c) => c.id === activeChainId)?.length : undefined) ?? 0;
+
+  const [view, setView] = useState<DilemmaView>('main');
+  const [addRuleText, setAddRuleText] = useState('');
+  const [addRuleError, setAddRuleError] = useState<string | null>(null);
+
+  const activeChain = activeChainId ? chains.find((c) => c.id === activeChainId) : undefined;
+  const activeChainLength = activeChain?.length ?? 0;
+  const precedentRules = activeChain?.precedentRules ?? [];
 
   const handleDestruction = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     chooseDestruction();
   };
 
-  const handleCompromisePress = () => {
-    setShowInput(true);
+  const handleAllowException = () => {
+    if (precedentRules.length === 0) {
+      // No existing rules — go straight to add-rule form
+      setView('addRule');
+    } else {
+      setView('pauseSelect');
+    }
   };
 
-  const handleCompromiseSubmit = () => {
-    const trimmed = exceptionText.trim();
+  const handleSelectRule = (index: number, text: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    chooseExistingRule(index + 1, text);
+  };
+
+  const handleAddRuleSubmit = () => {
+    const trimmed = addRuleText.trim();
     if (!trimmed) {
-      setErrorText(t('dilemma_ruleEmpty'));
+      setAddRuleError(t('dilemma_ruleEmpty'));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     chooseCompromise(trimmed);
-    setExceptionText('');
-    setErrorText(null);
-    setShowInput(false);
   };
 
-  const handleCompromiseCancel = () => {
-    setShowInput(false);
-    setExceptionText('');
-    setErrorText(null);
+  const handleAddRuleCancel = () => {
+    setAddRuleText('');
+    setAddRuleError(null);
+    setView(precedentRules.length > 0 ? 'pauseSelect' : 'main');
   };
 
-  if (showInput) {
+  // ── add-rule form ──────────────────────────────────────────────────────────
+  if (view === 'addRule') {
     return (
-      <Modal visible transparent animationType="fade">
+      <Modal visible animationType="fade">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.inputOverlay}
+          style={[styles.addRuleOverlay, { backgroundColor: themeColors.background }]}
         >
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputTitle}>{t('dilemma_recordException')}</Text>
-            <Text style={styles.inputHint}>
+          <SafeAreaView style={styles.addRuleInner} edges={['top', 'bottom']}>
+            <Text style={[styles.title, { color: themeColors.text }]}>
+              {t('dilemma_recordException')}
+            </Text>
+            <Text style={[styles.subtitle, { color: themeColors.textMuted }]}>
               {t('dilemma_inputHint')}
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.addRuleInput, {
+                backgroundColor: themeColors.backgroundSecondary,
+                color: themeColors.text,
+              }]}
               placeholder={t('dilemma_placeholder')}
               placeholderTextColor={themeColors.textMuted}
-              value={exceptionText}
+              value={addRuleText}
               onChangeText={(text) => {
-                setExceptionText(text);
-                if (errorText) {
-                  setErrorText(null);
-                }
+                setAddRuleText(text);
+                if (addRuleError) setAddRuleError(null);
               }}
               multiline
               autoFocus
             />
-            {errorText ? (
-              <Text style={styles.errorText}>{errorText}</Text>
+            {addRuleError ? (
+              <Text style={styles.addRuleError}>{addRuleError}</Text>
             ) : null}
-            <View style={styles.inputActions}>
+            <View style={styles.addRuleActions}>
               <HeavyButton
                 title={t('common_cancel')}
-                onPress={handleCompromiseCancel}
+                onPress={handleAddRuleCancel}
                 variant="secondary"
-                style={styles.cancelBtn}
+                style={styles.addRuleBtn}
               />
               <HeavyButton
                 title={t('dilemma_writeRule')}
-                onPress={handleCompromiseSubmit}
+                onPress={handleAddRuleSubmit}
                 variant="primary"
-                style={styles.submitBtn}
+                style={styles.addRuleBtn}
               />
             </View>
-          </View>
+          </SafeAreaView>
         </KeyboardAvoidingView>
       </Modal>
     );
   }
 
+  // ── rule selection list ────────────────────────────────────────────────────
+  if (view === 'pauseSelect') {
+    return (
+      <Modal visible animationType="fade">
+        <SafeAreaView style={[styles.listContainer, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
+          <View style={[styles.listHeader, { borderBottomColor: themeColors.textMuted }]}>
+            <Text style={[styles.listTitle, { color: themeColors.text }]}>{t('pause_title')}</Text>
+            <Text style={[styles.listSubtitle, { color: themeColors.textMuted }]}>{t('pause_subtitle')}</Text>
+          </View>
+          <FlatList
+            data={precedentRules}
+            keyExtractor={(_, i) => i.toString()}
+            renderItem={({ item, index }) => {
+              const nodePart = item.nodeIndex >= 0
+                ? t('chain_nodeLabel', { n: String(item.nodeIndex + 1) })
+                : t('chain_preset');
+              const line = t('idle_ruleAddedAt', { n: String(index + 1), session: nodePart, text: item.text });
+              return (
+                <Pressable
+                  onPress={() => handleSelectRule(index, item.text)}
+                  style={({ pressed }) => [
+                    styles.ruleItem,
+                    { backgroundColor: themeColors.backgroundSecondary },
+                    pressed && styles.ruleItemPressed,
+                  ]}
+                >
+                  <Text style={[styles.ruleText, { color: themeColors.text }]}>{line}</Text>
+                </Pressable>
+              );
+            }}
+            contentContainerStyle={styles.listContent}
+          />
+          <View style={styles.listFooter}>
+            <HeavyButton
+              title={t('pause_addRule')}
+              onPress={() => setView('addRule')}
+              variant="secondary"
+              style={styles.listFooterBtn}
+            />
+            <HeavyButton
+              title={t('common_back')}
+              onPress={() => setView('main')}
+              variant="secondary"
+              style={styles.listFooterBtn}
+            />
+          </View>
+        </SafeAreaView>
+      </Modal>
+    );
+  }
+
+  // ── main dilemma view ──────────────────────────────────────────────────────
   return (
     <Modal visible animationType="fade">
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
@@ -131,7 +207,7 @@ export function DilemmaModal() {
             />
             <HeavyButton
               title={t('dilemma_allowException')}
-              onPress={handleCompromisePress}
+              onPress={handleAllowException}
               variant="secondary"
               style={styles.optionButton}
             />
@@ -153,6 +229,7 @@ const makeStyles = (
   serifLoaded: boolean
 ) =>
   StyleSheet.create({
+    // ── main view ──
     container: {
       flex: 1,
       backgroundColor: colors.background,
@@ -163,27 +240,11 @@ const makeStyles = (
       alignItems: 'center',
     },
     title: serifLoaded
-      ? {
-          ...typography.serif.title,
-          color: colors.text,
-          marginBottom: spacing.sm,
-        }
-      : {
-          ...typography.title,
-          color: colors.text,
-          marginBottom: spacing.sm,
-        },
+      ? { ...typography.serif.title, color: colors.text, marginBottom: spacing.sm }
+      : { ...typography.title, color: colors.text, marginBottom: spacing.sm },
     subtitle: serifLoaded
-      ? {
-          ...typography.serif.subtitle,
-          color: colors.textMuted,
-          marginBottom: spacing.xxl,
-        }
-      : {
-          ...typography.body,
-          color: colors.textMuted,
-          marginBottom: spacing.xxl,
-        },
+      ? { ...typography.serif.subtitle, color: colors.textMuted, marginBottom: spacing.xxl }
+      : { ...typography.body, color: colors.textMuted, marginBottom: spacing.xxl },
     options: {
       width: '100%',
       gap: spacing.lg,
@@ -192,72 +253,6 @@ const makeStyles = (
     optionButton: {
       width: '100%',
       maxWidth: 320,
-    },
-    inputOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      justifyContent: 'center',
-      padding: spacing.xl,
-    },
-    inputContainer: {
-      backgroundColor: themeColors.backgroundSecondary,
-      borderRadius: 16,
-      padding: spacing.xl,
-    },
-    inputTitle: serifLoaded
-      ? {
-          ...typography.serif.title,
-          color: colors.text,
-          marginBottom: spacing.sm,
-        }
-      : {
-          ...typography.title,
-          color: colors.text,
-          marginBottom: spacing.sm,
-        },
-    inputHint: serifLoaded
-      ? {
-          ...typography.serif.body,
-          color: colors.textMuted,
-          marginBottom: spacing.lg,
-        }
-      : {
-          ...typography.body,
-          color: colors.textMuted,
-          marginBottom: spacing.lg,
-        },
-    input: serifLoaded
-      ? {
-          backgroundColor: themeColors.background,
-          borderRadius: 8,
-          padding: spacing.md,
-          color: themeColors.text,
-          ...typography.serif.body,
-          minHeight: 80,
-          textAlignVertical: 'top',
-        }
-      : {
-          backgroundColor: themeColors.background,
-          borderRadius: 8,
-          padding: spacing.md,
-          color: themeColors.text,
-          ...typography.body,
-          fontFamily: 'serif',
-          minHeight: 80,
-          textAlignVertical: 'top',
-        },
-    inputActions: {
-      flexDirection: 'row',
-      gap: spacing.md,
-      marginTop: spacing.lg,
-    },
-    cancelBtn: {
-      flex: 1,
-      minWidth: 0,
-    },
-    submitBtn: {
-      flex: 1,
-      minWidth: 0,
     },
     backBtn: {
       marginTop: spacing.xl,
@@ -268,15 +263,71 @@ const makeStyles = (
       ...typography.body,
       color: colors.accent,
     },
-    errorText: serifLoaded
-      ? {
-          ...typography.serif.body,
-          color: colors.destructionBase,
-          marginTop: spacing.sm,
-        }
-      : {
-          ...typography.body,
-          color: colors.destructionBase,
-          marginTop: spacing.sm,
-        },
+    // ── rule list view ──
+    listContainer: {
+      flex: 1,
+    },
+    listHeader: {
+      padding: spacing.xl,
+      borderBottomWidth: 1,
+    },
+    listTitle: serifLoaded
+      ? { ...typography.serif.title, color: colors.text }
+      : { ...typography.title, color: colors.text },
+    listSubtitle: serifLoaded
+      ? { ...typography.serif.subtitle, color: colors.textMuted, marginTop: spacing.sm }
+      : { ...typography.body, color: colors.textMuted, marginTop: spacing.sm },
+    listContent: {
+      padding: spacing.xl,
+    },
+    ruleItem: {
+      borderRadius: 8,
+      padding: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    ruleItemPressed: {
+      opacity: 0.8,
+    },
+    ruleText: serifLoaded
+      ? { ...typography.serif.body, color: colors.text }
+      : { ...typography.body, color: colors.text },
+    listFooter: {
+      padding: spacing.xl,
+      gap: spacing.md,
+      alignItems: 'center',
+    },
+    listFooterBtn: {
+      minWidth: 200,
+    },
+    // ── add-rule form ──
+    addRuleOverlay: {
+      flex: 1,
+    },
+    addRuleInner: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    addRuleInput: {
+      borderRadius: 8,
+      padding: spacing.md,
+      ...typography.body,
+      minHeight: 80,
+      textAlignVertical: 'top',
+      marginTop: spacing.lg,
+    },
+    addRuleError: {
+      ...typography.body,
+      color: colors.destructionBase,
+      marginTop: spacing.sm,
+    },
+    addRuleActions: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginTop: spacing.lg,
+    },
+    addRuleBtn: {
+      flex: 1,
+      minWidth: 0,
+    },
   });

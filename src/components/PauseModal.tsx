@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,28 +6,32 @@ import {
   Modal,
   Pressable,
   FlatList,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import type { PrecedentRule } from '../types/chain';
 import { colors, spacing } from '../design/theme';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { useTypography } from '../design/typography';
 import { HeavyButton } from '../design/components';
+import { usePacteStore } from '../store/pacteStore';
 
 interface PauseModalProps {
   precedentRules: PrecedentRule[];
-  onSelect: (ruleIndex: number, ruleText: string) => void;
   onBack: () => void;
   serifLoaded: boolean;
 }
 
 export function PauseModal({
   precedentRules,
-  onSelect,
   onBack,
   serifLoaded,
 }: PauseModalProps) {
+  const { chooseExistingRule, chooseCompromise } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t } = useLocale();
   const typography = useTypography();
@@ -36,6 +40,82 @@ export function PauseModal({
     () => makeStyles(themeColors, typography, serifLoaded),
     [themeColors, typography, serifLoaded]
   );
+
+  const [showAddRule, setShowAddRule] = useState(false);
+  const [addRuleText, setAddRuleText] = useState('');
+  const [addRuleError, setAddRuleError] = useState<string | null>(null);
+
+  const handleSelectRule = (index: number, text: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    chooseExistingRule(index + 1, text);
+  };
+
+  const handleAddRuleSubmit = () => {
+    const trimmed = addRuleText.trim();
+    if (!trimmed) {
+      setAddRuleError(t('dilemma_ruleEmpty'));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    chooseCompromise(trimmed);
+  };
+
+  const handleAddRuleCancel = () => {
+    setShowAddRule(false);
+    setAddRuleText('');
+    setAddRuleError(null);
+  };
+
+  if (showAddRule) {
+    return (
+      <Modal visible animationType="fade">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={[styles.addRuleOverlay, { backgroundColor: themeColors.background }]}
+        >
+          <View style={[styles.addRuleInner, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+            <Text style={[styles.addRuleTitle, { color: themeColors.text }]}>
+              {t('dilemma_recordException')}
+            </Text>
+            <Text style={[styles.addRuleHint, { color: themeColors.textMuted }]}>
+              {t('dilemma_inputHint')}
+            </Text>
+            <TextInput
+              style={[styles.addRuleInput, { backgroundColor: themeColors.backgroundSecondary, color: themeColors.text }]}
+              placeholder={t('dilemma_placeholder')}
+              placeholderTextColor={themeColors.textMuted}
+              value={addRuleText}
+              onChangeText={(text) => {
+                setAddRuleText(text);
+                if (addRuleError) setAddRuleError(null);
+              }}
+              multiline
+              autoFocus
+            />
+            {addRuleError ? (
+              <Text style={styles.addRuleError}>{addRuleError}</Text>
+            ) : null}
+            <View style={styles.addRuleActions}>
+              <HeavyButton
+                title={t('common_cancel')}
+                onPress={handleAddRuleCancel}
+                variant="secondary"
+                style={styles.addRuleBtn}
+              />
+              <HeavyButton
+                title={t('dilemma_writeRule')}
+                onPress={handleAddRuleSubmit}
+                variant="primary"
+                style={styles.addRuleBtn}
+              />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    );
+  }
+
   return (
     <Modal visible animationType="fade">
       <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -51,9 +131,10 @@ export function PauseModal({
             const line = t('idle_ruleAddedAt', { n: String(index + 1), session: nodePart, text: item.text });
             return (
               <Pressable
-                onPress={() => onSelect(index + 1, item.text)}
+                onPress={() => handleSelectRule(index, item.text)}
                 style={({ pressed }) => [
-                  [styles.ruleItem, { backgroundColor: themeColors.backgroundSecondary }],
+                  styles.ruleItem,
+                  { backgroundColor: themeColors.backgroundSecondary },
                   pressed && styles.ruleItemPressed,
                 ]}
               >
@@ -65,10 +146,16 @@ export function PauseModal({
         />
         <View style={styles.footer}>
           <HeavyButton
+            title={t('pause_addRule')}
+            onPress={() => setShowAddRule(true)}
+            variant="secondary"
+            style={styles.footerBtn}
+          />
+          <HeavyButton
             title={t('common_back')}
             onPress={onBack}
             variant="secondary"
-            style={styles.backBtn}
+            style={styles.footerBtn}
           />
         </View>
       </View>
@@ -84,7 +171,6 @@ const makeStyles = (
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
     },
     header: {
       padding: spacing.xl,
@@ -106,7 +192,6 @@ const makeStyles = (
       padding: spacing.xl,
     },
     ruleItem: {
-      backgroundColor: colors.backgroundSecondary,
       borderRadius: 8,
       padding: spacing.lg,
       marginBottom: spacing.sm,
@@ -121,9 +206,51 @@ const makeStyles = (
     },
     footer: {
       padding: spacing.xl,
+      gap: spacing.md,
       alignItems: 'center',
     },
-    backBtn: {
-      minWidth: 160,
+    footerBtn: {
+      minWidth: 200,
+    },
+    addRuleOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
+    addRuleInner: {
+      flex: 1,
+      justifyContent: 'center',
+    },
+    addRuleTitle: {
+      ...typography.title,
+      fontFamily: serifLoaded ? typography.serif.title.fontFamily : typography.title.fontFamily,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    addRuleHint: {
+      ...typography.body,
+      color: colors.textMuted,
+      marginBottom: spacing.lg,
+    },
+    addRuleInput: {
+      borderRadius: 8,
+      padding: spacing.md,
+      ...typography.body,
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    addRuleError: {
+      ...typography.body,
+      color: colors.destructionBase,
+      marginTop: spacing.sm,
+    },
+    addRuleActions: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginTop: spacing.lg,
+    },
+    addRuleBtn: {
+      flex: 1,
+      minWidth: 0,
     },
   });

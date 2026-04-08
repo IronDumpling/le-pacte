@@ -57,6 +57,7 @@ interface PacteActions {
   chooseDestruction: () => void;
   finalizeDestruction: (chainId: string) => void;
   chooseCompromise: (exceptionText: string) => void;
+  chooseExistingRule: (ruleIndex: number, ruleText: string) => void;
   returnToFocus: () => void;
   resumeFromPause: () => void;
   clearIdleAnimation: () => void;
@@ -452,6 +453,26 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       dilemmaSource: null,
     });
     persistChains(next);
+    storage.setFocusedStartedAt(newFocusedStartedAt);
+  },
+
+  chooseExistingRule: (ruleIndex: number, ruleText: string) => {
+    const { currentState, frozenElapsedMs, currentSessionPauses } = get();
+    if (currentState !== 'DILEMMA') return;
+    const now = Date.now();
+    const elapsedMs = frozenElapsedMs ?? 0;
+    const newFocusedStartedAt = frozenElapsedMs !== null ? now - frozenElapsedMs : now;
+    set({
+      currentState: 'FOCUSED',
+      frozenElapsedMs: elapsedMs,
+      pauseReason: { ruleIndex, text: ruleText },
+      currentSessionPauses: [
+        ...currentSessionPauses,
+        { atElapsedMs: elapsedMs, startMs: now, ruleIndex },
+      ],
+      focusedStartedAt: newFocusedStartedAt,
+      dilemmaSource: null,
+    });
     storage.setFocusedStartedAt(newFocusedStartedAt);
   },
 

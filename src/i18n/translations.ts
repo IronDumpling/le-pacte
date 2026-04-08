@@ -68,6 +68,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     pause_title: '选择暂停原因',
     pause_subtitle: '例外规则',
+    pause_addRule: '添加新规则',
 
     focus_backContinue: '← 返回继续',
     focus_complete: '完成结算',
@@ -184,6 +185,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     pause_title: 'Choose pause reason',
     pause_subtitle: 'Exception rules',
+    pause_addRule: 'Add New Rule',
 
     focus_backContinue: '← Back To Continue',
     focus_complete: 'Complete',
@@ -300,6 +302,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     pause_title: 'Choisir la raison de la pause',
     pause_subtitle: "Règles d'exception",
+    pause_addRule: 'Ajouter une règle',
 
     focus_backContinue: '← Retour pour continuer',
     focus_complete: 'Terminer',
@@ -416,6 +419,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     pause_title: '一時停止の理由を選択',
     pause_subtitle: '例外ルール',
+    pause_addRule: '新しいルールを追加',
 
     focus_backContinue: '← 戻って続行',
     focus_complete: '完了',

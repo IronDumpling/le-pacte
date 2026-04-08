@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -14,7 +14,6 @@ import { colors, spacing } from '../design/theme';
 import { useFonts } from 'expo-font';
 import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
-import { PauseModal } from './PauseModal';
 import { playPactCompleteSound } from '../audio/soundEffects';
 import { useTypography } from '../design/typography';
 import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
@@ -31,23 +30,20 @@ export function FocusedScreen() {
     pauseReason,
     completeFocus,
     triggerDilemma,
-    triggerPause,
     resumeFromPause,
   } = usePacteStore();
   const { colors: themeColors } = useTheme();
   const { t, locale } = useLocale();
-  const [serifLoaded] = useFonts(getSerifFontsForLocale(locale));
+  useFonts(getSerifFontsForLocale(locale));
   const typography = useTypography();
   const styles = useMemo(() => makeStyles(typography), [typography]);
 
   const chain = chains.find((c) => c.id === activeChainId);
   const targetMs = chain?.focusTargetMs ?? 60 * 60 * 1000;
-  const hasPrecedents = (chain?.precedentRules.length ?? 0) > 0;
 
   const remainingMs = useFocusCountdown(focusedStartedAt, targetMs);
   const elapsedMs = useFocusedElapsed(focusedStartedAt);
 
-  const [showPauseModal, setShowPauseModal] = useState(false);
   const targetReached = remainingMs <= 0;
 
   const hasPlayedCompleteRef = useRef(false);
@@ -62,16 +58,6 @@ export function FocusedScreen() {
   const handleComplete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     completeFocus();
-  };
-
-  const handlePauseBack = () => {
-    resumeFromPause();
-    setShowPauseModal(false);
-  };
-
-  const handlePauseSelect = (ruleIndex: number, ruleText: string) => {
-    triggerPause(ruleIndex, ruleText);
-    setShowPauseModal(false);
   };
 
   const isPaused = frozenElapsedMs !== null;
@@ -120,15 +106,14 @@ export function FocusedScreen() {
   }
 
   return (
-    <>
-      <SafeAreaView
-        style={[
-          styles.container,
-          styles.focusContainer,
-          { backgroundColor: themeColors.focusBackground },
-        ]}
-        edges={['top']}
-      >
+    <SafeAreaView
+      style={[
+        styles.container,
+        styles.focusContainer,
+        { backgroundColor: themeColors.focusBackground },
+      ]}
+      edges={['top']}
+    >
         <View style={styles.content}>
           <Text style={styles.label}>
             {chain?.theme || t('idle_defaultTheme')}{t('focus_themeSuffix')}
@@ -160,50 +145,17 @@ export function FocusedScreen() {
               style={styles.completeButton}
             />
           )}
-          {hasPrecedents ? (
-            <>
-              <Pressable
-                onPress={() => setShowPauseModal(true)}
-                style={({ pressed }) => [
-                  styles.exitButton,
-                  pressed && styles.exitButtonPressed,
-                ]}
-              >
-                <Text style={styles.exitText}>{t('focus_pause')}</Text>
-              </Pressable>
-              <Pressable
-                onPress={triggerDilemma}
-                style={({ pressed }) => [
-                  styles.exitButton,
-                  pressed && styles.exitButtonPressed,
-                ]}
-              >
-                <Text style={styles.exitText}>{t('focus_exit')}</Text>
-              </Pressable>
-            </>
-          ) : (
-            <Pressable
-              onPress={triggerDilemma}
-              style={({ pressed }) => [
-                styles.exitButton,
-                pressed && styles.exitButtonPressed,
-              ]}
-            >
-              <Text style={styles.exitText}>{t('focus_exit')}</Text>
-            </Pressable>
-          )}
+          <Pressable
+            onPress={() => triggerDilemma('exit')}
+            style={({ pressed }) => [
+              styles.exitButton,
+              pressed && styles.exitButtonPressed,
+            ]}
+          >
+            <Text style={styles.exitText}>{t('focus_exit')}</Text>
+          </Pressable>
         </View>
-      </SafeAreaView>
-
-      {showPauseModal && chain && (
-        <PauseModal
-          precedentRules={chain.precedentRules}
-          onSelect={handlePauseSelect}
-          onBack={handlePauseBack}
-          serifLoaded={!!serifLoaded}
-        />
-      )}
-    </>
+    </SafeAreaView>
   );
 }
 
