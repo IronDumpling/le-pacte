@@ -549,7 +549,6 @@ export default function ChainSettingsScreen() {
                       <Text style={styles.ruleItemText} numberOfLines={3}>
                         {item.text}
                       </Text>
-                      <Text style={styles.rulePresetBadge}>{t('chain_preset')}</Text>
                     </View>
                     <MaterialIcons name="edit" size={18} color={themeColors.primary} />
                   </Pressable>
@@ -871,12 +870,6 @@ function createStyles(
   ruleItemTextMuted: {
     ...typography.serif.body,
     color: c.textMuted,
-  },
-  rulePresetBadge: {
-    ...typography.body,
-    fontSize: 12,
-    color: c.primary,
-    marginTop: spacing.xs,
   },
   ruleSessionNote: {
     ...typography.body,
