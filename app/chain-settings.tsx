@@ -564,7 +564,7 @@ export default function ChainSettingsScreen() {
                       {item.text}
                     </Text>
                     <Text style={styles.ruleSessionNote}>
-                      {t('settings_ruleSessionOnly')}
+                      {t('chainSettings_ruleSessionOnly')}
                     </Text>
                   </View>
                   <MaterialIcons

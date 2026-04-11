@@ -70,7 +70,7 @@ export function EditPrecedentRuleModal({
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: colors.text, ...typography.title }]}>
-              {t('settings_editRule')}
+              {t('chainSettings_editRule')}
             </Text>
             <TextInput
               style={[
@@ -99,7 +99,7 @@ export function EditPrecedentRuleModal({
                 onPress={onDelete}
               >
                 <Text style={[styles.deleteBtnText, { color: '#fff', ...typography.body }]}>
-                  {t('settings_deleteRule')}
+                  {t('chainSettings_deleteRule')}
                 </Text>
               </Pressable>
             </View>
