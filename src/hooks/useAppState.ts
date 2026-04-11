@@ -4,8 +4,11 @@ import { usePacteStore } from '../store/pacteStore';
 
 /**
  * Listens to AppState changes. When app goes to background during FOCUSED,
- * immediately triggers DILEMMA. RESERVED countdown self-corrects on return
- * since it computes from reservedAt to Date.now().
+ * immediately triggers DILEMMA (minimize path). We intentionally require
+ * `background` — not a standalone `inactive` transition — so brief system
+ * sheets (notification / control center) that never reach background do not
+ * trigger the dilemma. RESERVED countdown self-corrects on return since it
+ * computes from reservedAt to Date.now().
  */
 export function useAppState() {
   const appState = useRef(AppState.currentState);

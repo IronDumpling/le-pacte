@@ -13,6 +13,7 @@ export interface PauseReason {
   text: string;
 }
 
+/** startMs = wall-clock when the pause segment began (triggerDilemma), not when the user confirms the rule */
 interface SessionPause {
   atElapsedMs: number;
   startMs: number;
@@ -35,6 +36,8 @@ interface PacteState {
   pendingDestructionChainId: string | null;
   destructionStartedAt: number | null;
   dilemmaSource: DilemmaSource;
+  /** Wall-clock Date.now() when triggerDilemma ran (background or exit); used as SessionPause.startMs */
+  dilemmaPauseStartedAt: number | null;
   _hydrated: boolean;
 }
 
@@ -90,6 +93,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   pendingDestructionChainId: null,
   destructionStartedAt: null,
   dilemmaSource: null,
+  dilemmaPauseStartedAt: null,
   _hydrated: false,
 
   hydrate: async () => {
@@ -395,8 +399,14 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   triggerDilemma: (source: DilemmaSource = 'exit') => {
     const { currentState, focusedStartedAt } = get();
     if (currentState !== 'FOCUSED') return;
-    const frozenElapsedMs = focusedStartedAt ? Date.now() - focusedStartedAt : 0;
-    set({ currentState: 'DILEMMA', frozenElapsedMs, dilemmaSource: source });
+    const now = Date.now();
+    const frozenElapsedMs = focusedStartedAt ? now - focusedStartedAt : 0;
+    set({
+      currentState: 'DILEMMA',
+      frozenElapsedMs,
+      dilemmaSource: source,
+      dilemmaPauseStartedAt: now,
+    });
   },
 
   chooseDestruction: () => {
@@ -411,6 +421,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       pendingDestructionChainId: activeChainId,
       destructionStartedAt: now,
       dilemmaSource: null,
+      dilemmaPauseStartedAt: null,
     });
     storage.setFocusedStartedAt(null);
   },
@@ -432,7 +443,14 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
   },
 
   chooseCompromise: (exceptionText: string) => {
-    const { currentState, chains, activeChainId, frozenElapsedMs, currentSessionPauses } = get();
+    const {
+      currentState,
+      chains,
+      activeChainId,
+      frozenElapsedMs,
+      currentSessionPauses,
+      dilemmaPauseStartedAt,
+    } = get();
     if (currentState !== 'DILEMMA' || !activeChainId) return;
     const chain = chains.find((c) => c.id === activeChainId);
     if (!chain) return;
@@ -452,11 +470,16 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       .precedentRules;
     const ruleDisplayIndex = rulesAfterAdd.length;
     const elapsedMs = frozenElapsedMs ?? 0;
+    const pauseWallClockStart = dilemmaPauseStartedAt ?? now;
     const sessionPauses =
       newRule && trimmed
         ? [
             ...currentSessionPauses,
-            { atElapsedMs: elapsedMs, startMs: now, ruleIndex: ruleDisplayIndex },
+            {
+              atElapsedMs: elapsedMs,
+              startMs: pauseWallClockStart,
+              ruleIndex: ruleDisplayIndex,
+            },
           ]
         : currentSessionPauses;
     set({
@@ -469,27 +492,30 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       currentSessionPauses: sessionPauses,
       focusedStartedAt: newFocusedStartedAt,
       dilemmaSource: null,
+      dilemmaPauseStartedAt: null,
     });
     persistChains(next);
     storage.setFocusedStartedAt(newFocusedStartedAt);
   },
 
   chooseExistingRule: (ruleIndex: number, ruleText: string) => {
-    const { currentState, frozenElapsedMs, currentSessionPauses } = get();
+    const { currentState, frozenElapsedMs, currentSessionPauses, dilemmaPauseStartedAt } = get();
     if (currentState !== 'DILEMMA') return;
     const now = Date.now();
     const elapsedMs = frozenElapsedMs ?? 0;
     const newFocusedStartedAt = frozenElapsedMs !== null ? now - frozenElapsedMs : now;
+    const pauseWallClockStart = dilemmaPauseStartedAt ?? now;
     set({
       currentState: 'FOCUSED',
       frozenElapsedMs: elapsedMs,
       pauseReason: { ruleIndex, text: ruleText },
       currentSessionPauses: [
         ...currentSessionPauses,
-        { atElapsedMs: elapsedMs, startMs: now, ruleIndex },
+        { atElapsedMs: elapsedMs, startMs: pauseWallClockStart, ruleIndex },
       ],
       focusedStartedAt: newFocusedStartedAt,
       dilemmaSource: null,
+      dilemmaPauseStartedAt: null,
     });
     storage.setFocusedStartedAt(newFocusedStartedAt);
   },
@@ -506,6 +532,7 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
       pauseReason: null,
       focusedStartedAt: newFocusedStartedAt,
       dilemmaSource: null,
+      dilemmaPauseStartedAt: null,
     });
     storage.setFocusedStartedAt(newFocusedStartedAt);
   },
