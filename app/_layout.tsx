@@ -1,19 +1,28 @@
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import { ThemeStatusBar } from '../src/theme/ThemeStatusBar';
 import { LocaleProvider } from '../src/i18n/LocaleContext';
-import { ensureSplashPrevented } from '../src/splash/splashGate';
+import { prepareSplashScreen } from '../src/splash/splashGate';
 
 export default function RootLayout() {
-  // Fonts are now loaded on demand in individual screens/components.
-  // Keep useFonts hook here with an empty map so the startup behavior stays simple.
   const [fontsLoaded] = useFonts({});
+  const [splashReady, setSplashReady] = useState(false);
 
-  // 确保在应用树渲染前阻止原生 splash 自动关闭
-  ensureSplashPrevented();
+  useEffect(() => {
+    let cancelled = false;
+    prepareSplashScreen().then(() => {
+      if (!cancelled) setSplashReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || !splashReady) {
+    return null;
+  }
 
   return (
     <ThemeProvider>

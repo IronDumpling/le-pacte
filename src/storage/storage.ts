@@ -10,6 +10,7 @@ const KEYS = {
   FOCUSED_STARTED_AT: '@lepacte/focused_started_at',
   COLOR_SCHEME: '@lepacte/color_scheme',
   LOCALE: '@lepacte/locale',
+  HAS_SEEN_ONBOARDING: '@lepacte/has_seen_onboarding',
 } as const;
 
 export type ColorScheme = 'light' | 'dark' | 'auto';
@@ -116,5 +117,14 @@ export const storage = {
 
   async setLocale(locale: Locale): Promise<void> {
     await AsyncStorage.setItem(KEYS.LOCALE, locale);
+  },
+
+  async getHasSeenOnboarding(): Promise<boolean> {
+    const value = await AsyncStorage.getItem(KEYS.HAS_SEEN_ONBOARDING);
+    return value === 'true';
+  },
+
+  async setHasSeenOnboarding(): Promise<void> {
+    await AsyncStorage.setItem(KEYS.HAS_SEEN_ONBOARDING, 'true');
   },
 };

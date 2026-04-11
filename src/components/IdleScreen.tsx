@@ -49,6 +49,11 @@ import { getSansFontsForLocale } from '../design/fonts/sansFonts';
 import { getMonoFonts } from '../design/fonts/monoFonts';
 import { getSerifFontsForLocale } from '../design/fonts/serifFonts';
 import { markAppReady } from '../splash/splashGate';
+import { OnboardingModal } from './OnboardingModal';
+import { storage } from '../storage/storage';
+
+/** TEMP dev: `true` = always show onboarding on Idle mount; set `false` before release. */
+const FORCE_ONBOARDING_EVERY_LAUNCH = true;
 
 function SquareNodeIcon({
   size = 22,
@@ -1549,6 +1554,7 @@ export function IdleScreen({
   useFonts(getSansFontsForLocale(locale, { jpOnly: true }));
   useFonts(getMonoFonts());
 
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [viewedIndex, setViewedIndex] = useState<number>(0);
   const [chainDetailModalChain, setChainDetailModalChain] = useState<Chain | null>(null);
   const [deleteConfirmChain, setDeleteConfirmChain] = useState<Chain | null>(null);
@@ -1647,6 +1653,16 @@ export function IdleScreen({
 
   const handleScrollBeginDrag = useCallback(() => {
     lastHapticIndex.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (FORCE_ONBOARDING_EVERY_LAUNCH) {
+      setShowOnboarding(true);
+      return;
+    }
+    storage.getHasSeenOnboarding().then((seen) => {
+      if (!seen) setShowOnboarding(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -1987,6 +2003,16 @@ export function IdleScreen({
       edges={['top']}
       onLayout={handleRootLayout}
     >
+      {showOnboarding && (
+        <OnboardingModal
+          onDone={() => {
+            setShowOnboarding(false);
+            if (!FORCE_ONBOARDING_EVERY_LAUNCH) {
+              storage.setHasSeenOnboarding();
+            }
+          }}
+        />
+      )}
       {chainDetailModalChain && (
         <ChainDetailModal
           chain={chainDetailModalChain}

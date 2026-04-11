@@ -3,18 +3,41 @@ import * as SplashScreen from 'expo-splash-screen';
 const MIN_SPLASH_DURATION_MS = 1000;
 
 let splashStartTs = Date.now();
-let hasPreventedAutoHide = false;
 let hasRequestedHide = false;
+/** Set by prepareSplashScreen(); must resolve before hideAsync on iOS */
+let preventAutoHidePromise: Promise<boolean> | null = null;
 
-export function ensureSplashPrevented(): void {
-  if (hasPreventedAutoHide) return;
-  hasPreventedAutoHide = true;
+/**
+ * Call once from RootLayout after mount — awaits native registration before children render.
+ */
+export function prepareSplashScreen(): Promise<void> {
+  if (preventAutoHidePromise) {
+    return preventAutoHidePromise.then(() => {}).catch(() => {});
+  }
   splashStartTs = Date.now();
+  preventAutoHidePromise = SplashScreen.preventAutoHideAsync();
+  return preventAutoHidePromise.then(() => {}).catch(() => {});
+}
 
-  // Fire and forget; any error here只影响开发环境日志，不影响主流程
-  SplashScreen.preventAutoHideAsync().catch(() => {
-    // ignore – 在原生层或开发环境失败时不阻塞应用启动
-  });
+async function ensureNativeSplashRegistered(): Promise<void> {
+  try {
+    if (preventAutoHidePromise) {
+      await preventAutoHidePromise.catch(() => {});
+    } else {
+      await SplashScreen.preventAutoHideAsync().catch(() => {});
+    }
+  } catch {
+    // ignore
+  }
+}
+
+async function hideSplash(): Promise<void> {
+  await ensureNativeSplashRegistered();
+  try {
+    await SplashScreen.hideAsync();
+  } catch {
+    // ignore
+  }
 }
 
 export function markAppReady(): void {
@@ -24,16 +47,13 @@ export function markAppReady(): void {
   const elapsed = Date.now() - splashStartTs;
   const remaining = MIN_SPLASH_DURATION_MS - elapsed;
 
-  const hide = () => {
-    SplashScreen.hideAsync().catch(() => {
-      // ignore – 在极端情况下失败时，不再重试
-    });
+  const runHide = () => {
+    void hideSplash().catch(() => {});
   };
 
   if (remaining > 0) {
-    setTimeout(hide, remaining);
+    setTimeout(runHide, remaining);
   } else {
-    hide();
+    runHide();
   }
 }
-

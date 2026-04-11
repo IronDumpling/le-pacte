@@ -172,12 +172,13 @@ export function DilemmaModal() {
             contentContainerStyle={styles.listContent}
           />
           <View style={styles.listFooter}>
-            <HeavyButton
-              title={t('pause_addRule')}
+            <Pressable
+              style={styles.addRuleBox}
               onPress={() => setView('addRule')}
-              variant="secondary"
-              style={styles.listFooterBtn}
-            />
+            >
+              <Text style={[styles.addRulePlus, { color: themeColors.textMuted }]}>+</Text>
+              <Text style={[styles.addRuleHint, { color: themeColors.textMuted }]}>{t('pause_addRule')}</Text>
+            </Pressable>
             <HeavyButton
               title={t('common_back')}
               onPress={() => setView('main')}
@@ -298,6 +299,25 @@ const makeStyles = (
     },
     listFooterBtn: {
       minWidth: 200,
+    },
+    addRuleBox: {
+      width: '100%',
+      borderWidth: 2,
+      borderStyle: 'dashed',
+      borderColor: themeColors.textMuted,
+      borderRadius: 8,
+      paddingVertical: spacing.lg,
+      paddingHorizontal: spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addRulePlus: {
+      ...typography.title,
+      fontSize: 28,
+      marginBottom: spacing.xs,
+    },
+    addRuleHint: {
+      ...typography.body,
     },
     // ── add-rule form ──
     addRuleOverlay: {

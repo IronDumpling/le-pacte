@@ -48,6 +48,8 @@ interface PacteActions {
   setActiveChain: (id: string | null) => void;
   updateChain: (id: string, partial: Partial<Chain>) => void;
   addPrecedentRule: (chainId: string, text: string) => void;
+  deletePrecedentRule: (chainId: string, ruleIndex: number) => void;
+  updatePrecedentRule: (chainId: string, ruleIndex: number, newText: string) => void;
   reserve: () => void;
   enterFocus: () => void;
   timeoutReserved: () => void;
@@ -260,6 +262,36 @@ export const usePacteStore = create<PacteStore>((set, get) => ({
           ...c.precedentRules,
           { text: trimmed, nodeIndex: -1 },
         ],
+      };
+    });
+    set({ chains: next });
+    persistChains(next);
+  },
+
+  deletePrecedentRule: (chainId: string, ruleIndex: number) => {
+    const { chains } = get();
+    const next = chains.map((c) => {
+      if (c.id !== chainId) return c;
+      return {
+        ...c,
+        precedentRules: c.precedentRules.filter((_, i) => i !== ruleIndex),
+      };
+    });
+    set({ chains: next });
+    persistChains(next);
+  },
+
+  updatePrecedentRule: (chainId: string, ruleIndex: number, newText: string) => {
+    const { chains } = get();
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+    const next = chains.map((c) => {
+      if (c.id !== chainId) return c;
+      return {
+        ...c,
+        precedentRules: c.precedentRules.map((r, i) =>
+          i === ruleIndex ? { ...r, text: trimmed } : r
+        ),
       };
     });
     set({ chains: next });
