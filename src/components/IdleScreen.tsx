@@ -52,9 +52,6 @@ import { markAppReady } from '../splash/splashGate';
 import { OnboardingModal } from './OnboardingModal';
 import { storage } from '../storage/storage';
 
-/** TEMP dev: `true` = always show onboarding on Idle mount; set `false` before release. */
-const FORCE_ONBOARDING_EVERY_LAUNCH = true;
-
 function SquareNodeIcon({
   size = 22,
   stroke = colors.accent,
@@ -1656,10 +1653,6 @@ export function IdleScreen({
   }, []);
 
   useEffect(() => {
-    if (FORCE_ONBOARDING_EVERY_LAUNCH) {
-      setShowOnboarding(true);
-      return;
-    }
     storage.getHasSeenOnboarding().then((seen) => {
       if (!seen) setShowOnboarding(true);
     });
@@ -2007,9 +2000,7 @@ export function IdleScreen({
         <OnboardingModal
           onDone={() => {
             setShowOnboarding(false);
-            if (!FORCE_ONBOARDING_EVERY_LAUNCH) {
-              storage.setHasSeenOnboarding();
-            }
+            storage.setHasSeenOnboarding();
           }}
         />
       )}

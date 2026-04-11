@@ -6,7 +6,6 @@ import {
   Pressable,
   TextInput,
   ScrollView,
-  FlatList,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +13,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { usePacteStore } from '../src/store/pacteStore';
@@ -29,6 +29,7 @@ import { useTypography } from '../src/design/typography';
 import { useLocale } from '../src/i18n/LocaleContext';
 import { useFonts } from 'expo-font';
 import { getSerifFontsForLocale } from '../src/design/fonts/serifFonts';
+import { EditPrecedentRuleModal } from '../src/features/chain-settings/EditPrecedentRuleModal';
 
 const ITEM_HEIGHT = 56;
 const PICKER_VISIBLE_ITEMS = 5;
@@ -80,7 +81,8 @@ function msToHoursMinutes(ms: number): { hours: number; minutes: number } {
 export default function ChainSettingsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { chains, updateChain, addPrecedentRule } = usePacteStore();
+  const { chains, updateChain, addPrecedentRule, updatePrecedentRule, deletePrecedentRule } =
+    usePacteStore();
   const { colors: themeColors } = useTheme();
   const typography = useTypography();
   const { t, locale } = useLocale();
@@ -103,11 +105,13 @@ export default function ChainSettingsScreen() {
     'reservation' | 'focus' | 'theme' | 'ritual' | null
   >(null);
   const [showShortContractError, setShowShortContractError] = useState(false);
-  const [showLockedModal, setShowLockedModal] = useState(false);
-  const [lockedModalAdvances, setLockedModalAdvances] = useState(true);
   const [showAddRuleModal, setShowAddRuleModal] = useState(false);
   const [addRuleInput, setAddRuleInput] = useState('');
   const [addRuleError, setAddRuleError] = useState<string | null>(null);
+  const [editingRule, setEditingRule] = useState<{
+    originalIndex: number;
+    text: string;
+  } | null>(null);
 
   const reservationScrollRef = useRef<ScrollView>(null);
   const focusHoursScrollRef = useRef<ScrollView>(null);
@@ -238,15 +242,21 @@ export default function ChainSettingsScreen() {
     setAddRuleInput('');
     setAddRuleError(null);
     setShowAddRuleModal(false);
-    setLockedModalAdvances(false);
-    setShowLockedModal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const onLockedModalConfirm = () => {
-    setShowLockedModal(false);
-    if (lockedModalAdvances) {
-      handleNextStep();
-    }
+  const handleEditRuleSave = (newText: string) => {
+    if (!editingRule) return;
+    updatePrecedentRule(chain.id, editingRule.originalIndex, newText);
+    setEditingRule(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleEditRuleDelete = () => {
+    if (!editingRule) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    deletePrecedentRule(chain.id, editingRule.originalIndex);
+    setEditingRule(null);
   };
 
   useEffect(() => {
@@ -524,25 +534,55 @@ export default function ChainSettingsScreen() {
           <View style={styles.stepContent}>
             <Text style={styles.sectionTitle}>{t('chainSettings_rules')}</Text>
             <Text style={styles.rulesHint}>{t('chainSettings_rulesHint')}</Text>
-            <FlatList
-              data={chain.precedentRules}
-              keyExtractor={(_, i) => i.toString()}
-              renderItem={({ item }) => (
-                <View style={styles.ruleItem}>
-                  <Text style={styles.ruleItemText}>{item.text}</Text>
-                </View>
-              )}
-              ListFooterComponent={
-                <Pressable
-                  style={styles.addRuleBox}
-                  onPress={() => setShowAddRuleModal(true)}
-                >
-                  <Text style={styles.addRulePlus}>+</Text>
-                  <Text style={styles.addRuleHint}>{t('chainSettings_addRule')}</Text>
-                </Pressable>
+            {chain.precedentRules.map((item, originalIndex) => {
+              const isPreset = item.nodeIndex === -1;
+              if (isPreset) {
+                return (
+                  <Pressable
+                    key={`rule-${originalIndex}`}
+                    style={styles.ruleItemRow}
+                    onPress={() =>
+                      setEditingRule({ originalIndex, text: item.text })
+                    }
+                  >
+                    <View style={styles.ruleRowTextCol}>
+                      <Text style={styles.ruleItemText} numberOfLines={3}>
+                        {item.text}
+                      </Text>
+                      <Text style={styles.rulePresetBadge}>{t('chain_preset')}</Text>
+                    </View>
+                    <MaterialIcons name="edit" size={18} color={themeColors.primary} />
+                  </Pressable>
+                );
               }
-              scrollEnabled={false}
-            />
+              return (
+                <View
+                  key={`rule-${originalIndex}`}
+                  style={[styles.ruleItemRow, styles.ruleItemReadOnly]}
+                >
+                  <View style={styles.ruleRowTextCol}>
+                    <Text style={styles.ruleItemTextMuted} numberOfLines={3}>
+                      {item.text}
+                    </Text>
+                    <Text style={styles.ruleSessionNote}>
+                      {t('settings_ruleSessionOnly')}
+                    </Text>
+                  </View>
+                  <MaterialIcons
+                    name="lock-outline"
+                    size={18}
+                    color={themeColors.textMuted}
+                  />
+                </View>
+              );
+            })}
+            <Pressable
+              style={styles.addRuleBox}
+              onPress={() => setShowAddRuleModal(true)}
+            >
+              <Text style={styles.addRulePlus}>+</Text>
+              <Text style={styles.addRuleHint}>{t('chainSettings_addRule')}</Text>
+            </Pressable>
           </View>
         );
       }
@@ -601,11 +641,6 @@ export default function ChainSettingsScreen() {
         subtitle={t('chainSettings_shortContract')}
       />
 
-      <LockedConfirmModal
-        visible={showLockedModal}
-        onConfirm={onLockedModalConfirm}
-      />
-
       <Modal visible={showAddRuleModal} transparent animationType="fade">
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -654,6 +689,14 @@ export default function ChainSettingsScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <EditPrecedentRuleModal
+        visible={editingRule !== null}
+        initialText={editingRule?.text ?? ''}
+        onSave={handleEditRuleSave}
+        onDelete={handleEditRuleDelete}
+        onCancel={() => setEditingRule(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -803,16 +846,43 @@ function createStyles(
     color: c.textMuted,
     marginBottom: spacing.lg,
   },
-  ruleItem: {
+  ruleItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
     backgroundColor: c.backgroundSecondary,
     borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
+  ruleItemReadOnly: {
+    opacity: 0.95,
+  },
+  ruleRowTextCol: {
+    flex: 1,
+    gap: spacing.xs,
+  },
   ruleItemText: {
     // Actual rule text → serif body
     ...typography.serif.body,
     color: c.text,
+  },
+  ruleItemTextMuted: {
+    ...typography.serif.body,
+    color: c.textMuted,
+  },
+  rulePresetBadge: {
+    ...typography.body,
+    fontSize: 12,
+    color: c.primary,
+    marginTop: spacing.xs,
+  },
+  ruleSessionNote: {
+    ...typography.body,
+    fontSize: 12,
+    color: c.textMuted,
+    marginTop: spacing.xs,
   },
   addRuleBox: {
     borderWidth: 2,

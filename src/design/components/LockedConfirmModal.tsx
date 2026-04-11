@@ -21,14 +21,12 @@ export function LockedConfirmModal({
   const typography = useTypography();
   const { t } = useLocale();
   const styles = useMemo(() => makeStyles(typography), [typography]);
-  const resolvedTitle = title ?? t('locked_savedTitle');
-  const resolvedSubtitle = subtitle ?? t('save_confirmSubtitle');
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable style={styles.overlay} onPress={onConfirm}>
         <Pressable style={styles.container} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>{resolvedTitle}</Text>
-          <Text style={styles.subtitle}>{resolvedSubtitle}</Text>
+          {title ? <Text style={styles.title}>{title}</Text> : null}
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           <HeavyButton
             title={t('locked_confirm')}
             onPress={onConfirm}

@@ -27,6 +27,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     settings_language_ja: '日本語',
     settings_presetRules: '预设规则',
     settings_presetRulesEmpty: '暂无预设规则，可在专注计划设置中添加',
+    settings_ruleSessionOnly: '抉择时添加 · 不可在此修改',
+    settings_rulesSectionHint: '带「预设」标签的可点按编辑；抉择时添加的条目仅可查看。',
     settings_editRule: '编辑规则',
     settings_deleteRule: '删除此规则',
 
@@ -124,8 +126,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     idle_totalFocusHoursMinutes: '已执行专注{hours}小时{minutes}分钟',
     idle_totalFocusMinutes: '已执行专注{minutes}分钟',
 
-    locked_savedTitle: '已保存',
-
     onboarding_next: '下一步',
     onboarding_skip: '跳过',
     onboarding_start: '开始',
@@ -167,6 +167,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     settings_language_ja: '日本語',
     settings_presetRules: 'Preset Rules',
     settings_presetRulesEmpty: 'No preset rules. Add some in plan settings.',
+    settings_ruleSessionOnly: 'Added in dilemma · not editable here',
+    settings_rulesSectionHint: 'Tap rows labeled Preset to edit or delete; rules added during a dilemma are view-only here.',
     settings_editRule: 'Edit Rule',
     settings_deleteRule: 'Delete this rule',
 
@@ -264,8 +266,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     idle_totalFocusHoursMinutes: 'Total focus: {hours}h {minutes}min',
     idle_totalFocusMinutes: 'Total focus: {minutes} min',
 
-    locked_savedTitle: 'Saved',
-
     onboarding_next: 'Next',
     onboarding_skip: 'Skip',
     onboarding_start: 'Start',
@@ -307,6 +307,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     settings_language_ja: '日本語',
     settings_presetRules: 'Règles prédéfinies',
     settings_presetRulesEmpty: 'Aucune règle prédéfinie. Ajoutez-en dans les paramètres du plan.',
+    settings_ruleSessionOnly: 'Ajoutée au dilemme · non modifiable ici',
+    settings_rulesSectionHint: 'Appuyez sur les lignes « prédéfinies » pour modifier ; celles du dilemme sont en lecture seule.',
     settings_editRule: 'Modifier la règle',
     settings_deleteRule: 'Supprimer cette règle',
 
@@ -404,8 +406,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     idle_totalFocusHoursMinutes: 'Concentration totale : {hours}h {minutes}min',
     idle_totalFocusMinutes: 'Concentration totale : {minutes} min',
 
-    locked_savedTitle: 'Enregistré',
-
     onboarding_next: 'Suivant',
     onboarding_skip: 'Passer',
     onboarding_start: 'Commencer',
@@ -447,6 +447,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     settings_language_ja: '日本語',
     settings_presetRules: 'プリセットルール',
     settings_presetRulesEmpty: 'プリセットルールなし。プラン設定から追加できます。',
+    settings_ruleSessionOnly: '抉択で追加 · ここでは編集不可',
+    settings_rulesSectionHint: '「プリセット」の行はタップで編集・削除。抉択で追加したルールは閲覧のみ。',
     settings_editRule: 'ルールを編集',
     settings_deleteRule: 'このルールを削除',
 
@@ -543,8 +545,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     idle_pauseDetail: '{time}に{duration}一時停止、ルール#{n}',
     idle_totalFocusHoursMinutes: '合計集中：{hours}時間{minutes}分',
     idle_totalFocusMinutes: '合計集中：{minutes}分',
-
-    locked_savedTitle: '保存済み',
 
     onboarding_next: '次へ',
     onboarding_skip: 'スキップ',

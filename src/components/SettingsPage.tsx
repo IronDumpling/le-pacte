@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  Modal,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,8 +12,6 @@ import { useTheme } from '../theme/ThemeContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { spacing } from '../design/theme';
 import { useTypography } from '../design/typography';
-import { usePacteStore } from '../store/pacteStore';
-import { HeavyButton } from '../design/components';
 import type { ColorScheme } from '../storage/storage';
 import type { Locale } from '../storage/storage';
 
@@ -36,194 +30,21 @@ const LOCALE_OPTIONS: { value: Locale; labelKey: string; flag: string }[] = [
   { value: 'ja', labelKey: 'settings_language_ja', flag: '🇯🇵' },
 ];
 
-interface EditRuleModalProps {
-  visible: boolean;
-  initialText: string;
-  onSave: (newText: string) => void;
-  onDelete: () => void;
-  onCancel: () => void;
-}
-
-function EditRuleModal({ visible, initialText, onSave, onDelete, onCancel }: EditRuleModalProps) {
-  const [text, setText] = React.useState(initialText);
-  const [error, setError] = React.useState<string | null>(null);
-  const { colors } = useTheme();
-  const { t } = useLocale();
-  const typography = useTypography();
-
-  React.useEffect(() => {
-    if (visible) {
-      setText(initialText);
-      setError(null);
-    }
-  }, [visible, initialText]);
-
-  const handleSave = () => {
-    const trimmed = text.trim();
-    if (!trimmed) {
-      setError(t('chainSettings_ruleEmpty'));
-      return;
-    }
-    onSave(trimmed);
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <Pressable
-          style={[editStyles.overlay]}
-          onPress={onCancel}
-        >
-          <Pressable
-            style={[editStyles.container, { backgroundColor: colors.backgroundSecondary }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[editStyles.title, { color: colors.text, ...typography.title }]}>
-              {t('settings_editRule')}
-            </Text>
-            <TextInput
-              style={[
-                editStyles.input,
-                {
-                  backgroundColor: colors.background,
-                  color: colors.text,
-                  ...typography.body,
-                },
-              ]}
-              value={text}
-              onChangeText={(v) => {
-                setText(v);
-                if (error) setError(null);
-              }}
-              multiline
-              autoFocus
-              placeholderTextColor={colors.textMuted}
-            />
-            {error ? (
-              <Text style={[editStyles.error, { color: '#E05252' }]}>{error}</Text>
-            ) : null}
-            <View style={editStyles.actions}>
-              <Pressable
-                style={[editStyles.deleteBtn, { backgroundColor: '#E05252' }]}
-                onPress={onDelete}
-              >
-                <Text style={[editStyles.deleteBtnText, { color: '#fff', ...typography.body }]}>
-                  {t('settings_deleteRule')}
-                </Text>
-              </Pressable>
-            </View>
-            <View style={editStyles.actions}>
-              <HeavyButton
-                title={t('common_cancel')}
-                onPress={onCancel}
-                variant="secondary"
-                style={editStyles.btn}
-              />
-              <HeavyButton
-                title={t('common_save')}
-                onPress={handleSave}
-                variant="primary"
-                style={editStyles.btn}
-              />
-            </View>
-          </Pressable>
-        </Pressable>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
-
-const editStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-  },
-  container: {
-    width: '100%',
-    borderRadius: 12,
-    padding: spacing.xl,
-  },
-  title: {
-    marginBottom: spacing.lg,
-  },
-  input: {
-    borderRadius: 8,
-    padding: spacing.md,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: spacing.sm,
-  },
-  error: {
-    marginBottom: spacing.sm,
-    fontSize: 14,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  btn: {
-    flex: 1,
-    minWidth: 0,
-  },
-  deleteBtn: {
-    flex: 1,
-    borderRadius: 8,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnText: {
-    fontWeight: '600',
-  },
-});
-
 export function SettingsPage() {
   const { colors, colorScheme, setColorScheme } = useTheme();
   const { locale, setLocale, t } = useLocale();
   const typography = useTypography();
-  const { chains, activeChainId, deletePrecedentRule, updatePrecedentRule } = usePacteStore();
-
-  const activeChain = chains.find((c) => c.id === activeChainId);
-  const presetRules = activeChain
-    ? activeChain.precedentRules
-        .map((r, i) => ({ ...r, originalIndex: i }))
-        .filter((r) => r.nodeIndex === -1)
-    : [];
-
-  const [editingRule, setEditingRule] = useState<{
-    originalIndex: number;
-    text: string;
-  } | null>(null);
 
   const styles = React.useMemo(() => createStyles(colors, typography), [colors, typography]);
 
-  const handleRulePress = (originalIndex: number, text: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setEditingRule({ originalIndex, text });
-  };
-
-  const handleSaveRule = (newText: string) => {
-    if (!editingRule || !activeChainId) return;
-    updatePrecedentRule(activeChainId, editingRule.originalIndex, newText);
-    setEditingRule(null);
-  };
-
-  const handleDeleteRule = () => {
-    if (!editingRule || !activeChainId) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    deletePrecedentRule(activeChainId, editingRule.originalIndex);
-    setEditingRule(null);
-  };
-
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.wrapper}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <View style={styles.header}>
         <Text style={styles.title}>{t('settings_title')}</Text>
       </View>
@@ -302,35 +123,7 @@ export function SettingsPage() {
             </Pressable>
           ))}
         </View>
-
-        {activeChain && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('settings_presetRules')}</Text>
-            {presetRules.length === 0 ? (
-              <Text style={styles.emptyRules}>{t('settings_presetRulesEmpty')}</Text>
-            ) : (
-              presetRules.map((r) => (
-                <Pressable
-                  key={r.originalIndex}
-                  style={[styles.ruleItem]}
-                  onPress={() => handleRulePress(r.originalIndex, r.text)}
-                >
-                  <Text style={styles.ruleText} numberOfLines={2}>{r.text}</Text>
-                  <MaterialIcons name="edit" size={18} color={colors.textMuted} />
-                </Pressable>
-              ))
-            )}
-          </View>
-        )}
       </View>
-
-      <EditRuleModal
-        visible={editingRule !== null}
-        initialText={editingRule?.text ?? ''}
-        onSave={handleSaveRule}
-        onDelete={handleDeleteRule}
-        onCancel={() => setEditingRule(null)}
-      />
     </ScrollView>
   );
 }
@@ -346,9 +139,13 @@ function createStyles(
   typography: ReturnType<typeof useTypography>
 ) {
   return StyleSheet.create({
-    container: {
+    wrapper: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingBottom: spacing.xl,
     },
     header: {
       padding: spacing.lg,
@@ -370,7 +167,7 @@ function createStyles(
     sectionTitle: {
       ...typography.body,
       color: colors.textMuted,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
       fontSize: 14,
     },
     option: {
@@ -402,28 +199,6 @@ function createStyles(
     optionTextSelected: {
       fontWeight: '600',
       color: colors.primary,
-    },
-    ruleItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      minHeight: OPTION_HEIGHT,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      marginBottom: spacing.xs,
-      borderRadius: 8,
-      backgroundColor: colors.backgroundSecondary,
-      gap: spacing.sm,
-    },
-    ruleText: {
-      ...typography.body,
-      color: colors.text,
-      flex: 1,
-    },
-    emptyRules: {
-      ...typography.body,
-      color: colors.textMuted,
-      fontSize: 14,
     },
   });
 }
