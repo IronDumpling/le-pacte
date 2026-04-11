@@ -149,6 +149,7 @@ export function DilemmaModal() {
             <Text style={[styles.listSubtitle, { color: themeColors.textMuted }]}>{t('pause_subtitle')}</Text>
           </View>
           <FlatList
+            style={styles.ruleList}
             data={precedentRules}
             keyExtractor={(_, i) => i.toString()}
             renderItem={({ item, index }) => {
@@ -169,16 +170,20 @@ export function DilemmaModal() {
                 </Pressable>
               );
             }}
+            ListFooterComponent={
+              <Pressable
+                style={styles.addRuleBox}
+                onPress={() => setView('addRule')}
+              >
+                <Text style={[styles.addRulePlus, { color: themeColors.accent }]}>+</Text>
+                <Text style={[styles.addRuleHint, { color: themeColors.textMuted }]}>
+                  {t('pause_addRule')}
+                </Text>
+              </Pressable>
+            }
             contentContainerStyle={styles.listContent}
           />
           <View style={styles.listFooter}>
-            <Pressable
-              style={styles.addRuleBox}
-              onPress={() => setView('addRule')}
-            >
-              <Text style={[styles.addRulePlus, { color: themeColors.textMuted }]}>+</Text>
-              <Text style={[styles.addRuleHint, { color: themeColors.textMuted }]}>{t('pause_addRule')}</Text>
-            </Pressable>
             <HeavyButton
               title={t('common_back')}
               onPress={() => setView('main')}
@@ -278,8 +283,12 @@ const makeStyles = (
     listSubtitle: serifLoaded
       ? { ...typography.serif.subtitle, color: colors.textMuted, marginTop: spacing.sm }
       : { ...typography.body, color: colors.textMuted, marginTop: spacing.sm },
+    ruleList: {
+      flex: 1,
+    },
     listContent: {
       padding: spacing.xl,
+      paddingBottom: spacing.md,
     },
     ruleItem: {
       borderRadius: 8,
@@ -301,19 +310,18 @@ const makeStyles = (
       minWidth: 200,
     },
     addRuleBox: {
-      width: '100%',
       borderWidth: 2,
       borderStyle: 'dashed',
       borderColor: themeColors.textMuted,
       borderRadius: 8,
-      paddingVertical: spacing.lg,
-      paddingHorizontal: spacing.md,
+      padding: spacing.lg,
       alignItems: 'center',
       justifyContent: 'center',
+      marginTop: spacing.sm,
     },
     addRulePlus: {
       ...typography.title,
-      fontSize: 28,
+      fontSize: 32,
       marginBottom: spacing.xs,
     },
     addRuleHint: {
